@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum GearStatus {
+  AVAILABLE
+  CHECKED_OUT
+  LOST
+}
+
+enum LoanStatus {
+  ACTIVE
+  RETURNED
+}
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+model Profile {
+  id        String   @id // Supabase auth user ID
+  email     String   @unique
+  fullName  String?
+  role      Role     @default(MEMBER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  loans   Loan[]
+  qrScans QRScan[]
+}
+
+model Gear {
+  id              String     @id @default(uuid())
+  name            String
+  description     String?
+  category        String?
+  tags            String[]   @default([])
+  serialNumber    String?    @unique
+  loanStatus      GearStatus @default(AVAILABLE)
+  qrCodeUrl       String?
+  defaultLoanDays Int        @default(7)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  loans   Loan[]
+  qrScans QRScan[]
+}
+
+model Loan {
+  id           String     @id @default(uuid())
+  gearItemId   String
+  gearItem     Gear       @relation(fields: [gearItemId], references: [id])
+  userId       String
+  user         Profile    @relation(fields: [userId], references: [id])
+  status       LoanStatus @default(ACTIVE)
+  dueDate      DateTime
+  checkoutDate DateTime   @default(now())
+  returnDate   DateTime?
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([gearItemId])
+  @@index([status])
+}
+
+model QRScan {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       Profile? @relation(fields: [userId], references: [id])
+  gearItemId String
+  gearItem   Gear     @relation(fields: [gearItemId], references: [id])
+  latitude   Float?
+  longitude  Float?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([gearItemId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+}

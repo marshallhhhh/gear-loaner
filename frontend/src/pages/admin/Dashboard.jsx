@@ -1,0 +1,99 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { api } from '../../config/api.js';
+
+export default function Dashboard() {
+  const { getToken } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetch() {
+      try {
+        const data = await api('/admin/stats', { token: getToken() });
+        setStats(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetch();
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-20 text-gray-500">Loading dashboard…</div>;
+  }
+
+  const cards = [
+    { label: 'Total Gear', value: stats.totalGear, color: 'bg-blue-500' },
+    { label: 'Available', value: stats.availableGear, color: 'bg-green-500' },
+    { label: 'Checked Out', value: stats.checkedOut, color: 'bg-yellow-500' },
+    { label: 'Lost', value: stats.lost, color: 'bg-red-500' },
+    { label: 'Active Loans', value: stats.activeLoans, color: 'bg-purple-500' },
+    { label: 'Overdue', value: stats.overdueLoans, color: 'bg-red-600' },
+    { label: 'Total Users', value: stats.totalUsers, color: 'bg-indigo-500' },
+  ];
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+        {cards.map((card) => (
+          <div key={card.label} className="bg-white rounded-xl shadow p-4">
+            <div className={`text-3xl font-bold ${card.color.replace('bg-', 'text-')}`}>
+              {card.value}
+            </div>
+            <div className="text-sm text-gray-500 mt-1">{card.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Link
+          to="/admin/gear"
+          className="bg-white rounded-xl shadow p-6 hover:shadow-md transition block"
+        >
+          <h3 className="font-semibold text-lg mb-1">Gear Management</h3>
+          <p className="text-sm text-gray-500">Add, edit, and manage gear inventory</p>
+        </Link>
+
+        <Link
+          to="/admin/loans"
+          className="bg-white rounded-xl shadow p-6 hover:shadow-md transition block"
+        >
+          <h3 className="font-semibold text-lg mb-1">Loan History</h3>
+          <p className="text-sm text-gray-500">View and manage all loans</p>
+        </Link>
+
+        <Link
+          to="/admin/users"
+          className="bg-white rounded-xl shadow p-6 hover:shadow-md transition block"
+        >
+          <h3 className="font-semibold text-lg mb-1">User Management</h3>
+          <p className="text-sm text-gray-500">Manage members and admins</p>
+        </Link>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <h3 className="font-semibold text-lg mb-2">Export Data</h3>
+          <div className="flex gap-2">
+            <a
+              href={`${import.meta.env.VITE_API_URL}/admin/export/gear`}
+              className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded"
+            >
+              Gear CSV
+            </a>
+            <a
+              href={`${import.meta.env.VITE_API_URL}/admin/export/loans`}
+              className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded"
+            >
+              Loans CSV
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
