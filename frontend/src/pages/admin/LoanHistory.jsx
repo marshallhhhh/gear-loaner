@@ -22,7 +22,7 @@ export default function LoanHistory() {
     try {
       const body = action === 'return'
         ? { status: 'RETURNED' }
-        : { dueDate: new Date(Date.now() + 7 * 86400000).toISOString() };
+        : { dueDate: new Date(Date.now() + 7 * 86400000).toISOString() }; // eslint-disable-line react-hooks/purity
 
       await api(`/loans/${loanId}/override`, {
         method: 'PUT',

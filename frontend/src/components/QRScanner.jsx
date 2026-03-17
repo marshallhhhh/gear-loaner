@@ -13,7 +13,7 @@ export default function QRScanner({ onScan, onError }) {
         s.stop().catch(() => {}).finally(() => {
           try {
             s.clear();
-          } catch (e) {}
+          } catch (_e) { /* scanner may already be cleared */ }
         });
       }
     };
@@ -60,7 +60,7 @@ export default function QRScanner({ onScan, onError }) {
         .finally(() => {
           try {
             s.clear();
-          } catch (e) {}
+          } catch (_e) { /* scanner may already be cleared */ }
         });
     }
     setScanning(false);

@@ -37,7 +37,8 @@ export default function usePagination(endpoint, { pageSize = 50, extraParams = {
     } finally {
       setLoading(false);
     }
-  }, [endpoint, pageSize, getToken, ...Object.values(extraParams)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endpoint, pageSize, getToken, JSON.stringify(extraParams)]);
 
   const refetchCurrentPage = useCallback(() => {
     fetchPage(pagination.page);
