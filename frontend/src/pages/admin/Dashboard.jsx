@@ -31,12 +31,12 @@ export default function Dashboard() {
   // removed by Tailwind if the `text-...` class isn't present in source.
   const cards = [
     { label: 'Total Items', value: stats.totalGear, linkTo: '/admin/gear', bgColor: 'bg-blue-500', textColor: 'text-blue-500' },
-    { label: 'Available', value: stats.availableGear, bgColor: 'bg-green-500', textColor: 'text-green-500' },
-    { label: 'Checked Out', value: stats.checkedOut, bgColor: 'bg-yellow-500', textColor: 'text-yellow-500' },
-    { label: 'Lost', value: stats.lost, bgColor: 'bg-red-500', textColor: 'text-red-500' },
-    { label: 'Active Loans', value: stats.activeLoans, bgColor: 'bg-purple-500', textColor: 'text-purple-500' },
-    { label: 'Overdue', value: stats.overdueLoans, bgColor: 'bg-red-600', textColor: 'text-red-600' },
-    { label: 'Total Users', value: stats.totalUsers, linkTo:'admin/users', bgColor: 'bg-indigo-500', textColor: 'text-indigo-500' },
+    { label: 'Available', value: stats.availableGear, linkTo: '/admin/gear?status=AVAILABLE', bgColor: 'bg-green-500', textColor: 'text-green-500' },
+    { label: 'Checked Out', value: stats.checkedOut, linkTo: '/admin/gear?status=CHECKED_OUT', bgColor: 'bg-yellow-500', textColor: 'text-yellow-500' },
+    { label: 'Lost', value: stats.lost, linkTo: '/admin/gear?status=LOST', bgColor: 'bg-red-500', textColor: 'text-red-500' },
+    { label: 'Active Loans', value: stats.activeLoans, linkTo: '/admin/loans?status=ACTIVE', bgColor: 'bg-purple-500', textColor: 'text-purple-500' },
+    { label: 'Overdue', value: stats.overdueLoans, linkTo: '/admin/loans?status=OVERDUE', bgColor: 'bg-red-600', textColor: 'text-red-600' },
+    { label: 'Total Users', value: stats.totalUsers, linkTo: '/admin/users', bgColor: 'bg-indigo-500', textColor: 'text-indigo-500' },
   ];
 
   return (
@@ -45,23 +45,16 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
         {cards.map((card) => (
-          <div key={card.label} className="bg-white rounded-xl shadow p-4">
-            {card.linkTo ? (
-              <Link to={card.linkTo} className="block">
-                <div className={`text-3xl font-bold ${card.textColor}`}>
-                  {card.value}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">{card.label}</div>
-              </Link>
-            ) : (
-              <div className="block">
-                <div className={`text-3xl font-bold ${card.textColor}`}>
-                  {card.value}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">{card.label}</div>
-              </div>
-            )}
-          </div>
+          <Link
+            key={card.label}
+            to={card.linkTo}
+            className="bg-white rounded-xl shadow p-4 hover:shadow-md transition block"
+          >
+            <div className={`text-3xl font-bold ${card.textColor}`}>
+              {card.value}
+            </div>
+            <div className="text-sm text-gray-500 mt-1">{card.label}</div>
+          </Link>
         ))}
       </div>
 

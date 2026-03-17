@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
@@ -7,12 +7,30 @@ import GearStatusBadge from '../../components/GearStatusBadge.jsx';
 export default function GearManagement() {
   const { getToken } = useAuth();
   const navigate = useNavigate();
-  const [gear, setGear] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [allGear, setAllGear] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const statusFilter = searchParams.get('status') || '';
+
+  // client-side filtering — no extra API calls when filter/search changes
+  const gear = allGear.filter((item) => {
+    if (statusFilter && item.loanStatus !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        item.name?.toLowerCase().includes(q) ||
+        item.description?.toLowerCase().includes(q) ||
+        item.category?.toLowerCase().includes(q) ||
+        item.shortId?.toLowerCase().includes(q) ||
+        (item.tags || []).some((t) => t.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
 
   const emptyForm = {
     name: '',
@@ -24,22 +42,23 @@ export default function GearManagement() {
   const [form, setForm] = useState(emptyForm);
   // shortId of the item currently being edited (read-only display)
   const [editingShortId, setEditingShortId] = useState(null);
+  // show a saving/loading state while submitting the add/edit form
+  const [saving, setSaving] = useState(false);
   // show inline input to create a new category
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategory, setNewCategory] = useState('');
 
-  // derive a list of existing categories from the gear list
-  const categories = Array.from(new Set(gear.map((g) => g.category).filter(Boolean)));
+  // derive a list of existing categories from the full gear list (not filtered)
+  const categories = Array.from(new Set(allGear.map((g) => g.category).filter(Boolean)));
 
   useEffect(() => {
     fetchGear();
-  }, [search]);
+  }, []);
 
   async function fetchGear() {
     try {
-      const params = search ? `?search=${encodeURIComponent(search)}` : '';
-      const data = await api(`/gear${params}`, { token: getToken() });
-      setGear(data);
+      const data = await api('/gear', { token: getToken() });
+      setAllGear(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -66,7 +85,6 @@ export default function GearManagement() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-
     const body = {
       ...form,
       tags: form.tags
@@ -76,6 +94,7 @@ export default function GearManagement() {
       defaultLoanDays: parseInt(form.defaultLoanDays, 10) || 7,
     };
 
+    setSaving(true);
     try {
       if (editingId) {
         await api(`/gear/${editingId}`, { method: 'PUT', token: getToken(), body });
@@ -92,6 +111,8 @@ export default function GearManagement() {
       fetchGear();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -129,15 +150,29 @@ export default function GearManagement() {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="mb-4">
+      {/* Search & Filter */}
+      <div className="mb-4 flex gap-2">
         <input
           type="text"
           placeholder="Search gear…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
+          className="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
         />
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            const val = e.target.value;
+            setSearchParams(val ? { status: val } : {});
+          }}
+          className="border rounded-lg px-3 py-2 text-sm"
+        >
+          <option value="">All Statuses</option>
+          <option value="AVAILABLE">Available</option>
+          <option value="CHECKED_OUT">Checked Out</option>
+          <option value="LOST">Lost</option>
+          <option value="RETIRED">Retired</option>
+        </select>
       </div>
 
       {/* Form */}
@@ -248,9 +283,10 @@ export default function GearManagement() {
 
           <button
             type="submit"
-            className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-medium"
+            disabled={saving}
+            className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50"
           >
-            {editingId ? 'Save Changes' : 'Add Gear'}
+            {saving ? (editingId ? 'Saving…' : 'Adding…') : (editingId ? 'Save Changes' : 'Add Gear')}
           </button>
         </form>
       )}

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 
 export default function LoanHistory() {
   const { getToken } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState(searchParams.get('status') || '');
 
   useEffect(() => {
     fetchLoans();
@@ -14,8 +16,13 @@ export default function LoanHistory() {
 
   async function fetchLoans() {
     try {
-      const params = filter ? `?status=${filter}` : '';
-      const data = await api(`/loans${params}`, { token: getToken() });
+      // "OVERDUE" is a virtual filter: fetch ACTIVE loans, then keep only overdue ones
+      const apiStatus = filter === 'OVERDUE' ? 'ACTIVE' : filter;
+      const params = apiStatus ? `?status=${apiStatus}` : '';
+      let data = await api(`/loans${params}`, { token: getToken() });
+      if (filter === 'OVERDUE') {
+        data = data.filter((l) => new Date(l.dueDate) < new Date());
+      }
       setLoans(data);
     } catch (err) {
       console.error(err);
@@ -55,12 +62,17 @@ export default function LoanHistory() {
         <h1 className="text-2xl font-bold">Loan History</h1>
         <select
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            setFilter(val);
+            setSearchParams(val ? { status: val } : {});
+          }}
           className="border rounded-lg px-3 py-2 text-sm"
         >
           <option value="">All</option>
           <option value="ACTIVE">Active</option>
           <option value="RETURNED">Returned</option>
+          <option value="OVERDUE">Overdue</option>
         </select>
       </div>
 
