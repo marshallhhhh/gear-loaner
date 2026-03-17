@@ -103,7 +103,7 @@ export default function GearDetail() {
   }
 
   if (loading) {
-    return <div className="text-center py-20 text-gray-500">Loading gear details…</div>;
+    return <div className="text-center py-20 text-gray-500">Loading item details…</div>;
   }
 
   if (!gear) {

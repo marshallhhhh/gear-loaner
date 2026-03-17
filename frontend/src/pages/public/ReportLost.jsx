@@ -55,18 +55,15 @@ export default function ReportLost() {
       <div className="max-w-md mx-auto mt-12 text-center">
         <h1 className="text-2xl font-bold mb-4">Thank You</h1>
         <p className="text-gray-600 mb-4">
-          Your lost gear report has been submitted. A club leader will follow up.
+          Your lost item report has been submitted. A club leader will follow up.
         </p>
-        <Link to={`/gear/${id}`} className="text-primary-600 hover:underline">
-          Back to gear details
-        </Link>
       </div>
     );
   }
 
   return (
     <div className="max-w-md mx-auto mt-12">
-      <h1 className="text-2xl font-bold mb-6">Report Gear as Lost</h1>
+      <h1 className="text-2xl font-bold mb-6">Report Item as Lost</h1>
 
       {error && (
         <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>
@@ -88,7 +85,7 @@ export default function ReportLost() {
 
         <div>
           <label className="block text-sm font-medium mb-1">
-            Where / how did you find this gear?
+            Where / how did you find this item?
           </label>
           <textarea
             value={notes}
