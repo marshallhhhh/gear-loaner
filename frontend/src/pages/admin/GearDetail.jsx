@@ -6,6 +6,7 @@ import GearStatusBadge from '../../components/GearStatusBadge.jsx';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import ActionBadge from '../../components/ActionBadge.jsx';
 import HistoryDetailModal from '../../components/HistoryDetailModal.jsx';
+import useGearForm from '../../hooks/useGearForm.js';
 
 export default function GearDetail() {
   const { id } = useParams();
@@ -17,22 +18,16 @@ export default function GearDetail() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    category: '',
-    tags: '',
-    serialNumber: '',
-    defaultLoanDays: 7,
-    loanStatus: 'AVAILABLE',
-  });
+  const {
+    form, setForm, saving, setSaving,
+    showNewCategory, newCategory,
+    populateForm, resetForm,
+    buildBody, handleCategoryChange, handleNewCategoryInput,
+  } = useGearForm({ serialNumber: '', loanStatus: 'AVAILABLE' });
 
   const [categories, setCategories] = useState([]);
-  const [showNewCategory, setShowNewCategory] = useState(false);
-  const [newCategory, setNewCategory] = useState('');
 
   // selected history entry for the detail modal (Checkout, Return, or Reported Lost)
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -59,15 +54,7 @@ export default function GearDetail() {
       setActiveLoan(data.activeLoan);
       setHistory(data.history);
 
-      setForm({
-        name: data.gear.name || '',
-        description: data.gear.description || '',
-        category: data.gear.category || '',
-        tags: (data.gear.tags || []).join(', '),
-        serialNumber: data.gear.serialNumber || '',
-        defaultLoanDays: data.gear.defaultLoanDays || 7,
-        loanStatus: data.gear.loanStatus || 'AVAILABLE',
-      });
+      populateForm(data.gear);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -81,23 +68,10 @@ export default function GearDetail() {
     setError('');
 
     try {
-      const body = {
-        name: form.name,
-        description: form.description,
-        category: form.category,
-        serialNumber: form.serialNumber,
-        tags: form.tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
-        defaultLoanDays: parseInt(form.defaultLoanDays, 10) || 7,
-        loanStatus: form.loanStatus,
-      };
-
+      const body = buildBody();
       await api(`/gear/${id}`, { method: 'PUT', token: await getToken(), body });
       setEditing(false);
-      setShowNewCategory(false);
-      setNewCategory('');
+      resetForm();
       fetchDetail();
     } catch (err) {
       setError(err.message);
@@ -187,18 +161,7 @@ export default function GearDetail() {
               <label className="block text-sm font-medium mb-1">Category</label>
               <select
                 value={showNewCategory ? '__create_new__' : (form.category || '')}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '__create_new__') {
-                    setShowNewCategory(true);
-                    setNewCategory('');
-                    setForm({ ...form, category: '' });
-                  } else {
-                    setShowNewCategory(false);
-                    setNewCategory('');
-                    setForm({ ...form, category: val });
-                  }
-                }}
+                onChange={(e) => handleCategoryChange(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2"
               >
                 <option value="">—</option>
@@ -215,10 +178,7 @@ export default function GearDetail() {
                 <div className="mt-2">
                   <input
                     value={newCategory}
-                    onChange={(e) => {
-                      setNewCategory(e.target.value);
-                      setForm({ ...form, category: e.target.value });
-                    }}
+                    onChange={(e) => handleNewCategoryInput(e.target.value)}
                     placeholder="New category name"
                     className="w-full border rounded-lg px-3 py-2"
                   />
@@ -299,8 +259,7 @@ export default function GearDetail() {
               type="button"
               onClick={() => {
                 setEditing(false);
-                setShowNewCategory(false);
-                setNewCategory('');
+                resetForm();
               }}
               className="border border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-50"
             >

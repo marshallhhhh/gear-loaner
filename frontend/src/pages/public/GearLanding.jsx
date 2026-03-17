@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
+import useGeolocation from '../../hooks/useGeolocation.js';
 
 export default function GearLanding() {
   const { id } = useParams();
@@ -16,6 +17,7 @@ export default function GearLanding() {
   const [returnLoading, setReturnLoading] = useState(false);
   const [durationDays, setDurationDays] = useState(7);
   const [message, setMessage] = useState('');
+  const getLocation = useGeolocation();
 
   useEffect(() => {
     // Wait until auth has resolved so the token (if any) is available
@@ -34,19 +36,6 @@ export default function GearLanding() {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function getLocation() {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation is not supported by your browser'));
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-        (err) => reject(new Error('Location access is required. Please allow location access and try again.'))
-      );
-    });
   }
 
   async function handleCheckout() {

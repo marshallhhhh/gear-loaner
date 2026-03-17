@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../config/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import useGeolocation from '../../hooks/useGeolocation.js';
 
 export default function ReportLost() {
   const { id } = useParams();
@@ -11,23 +12,7 @@ export default function ReportLost() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
-
-  async function getLocation() {
-    try {
-      return await new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          resolve(null);
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-          () => resolve(null)
-        );
-      });
-    } catch {
-      return null;
-    }
-  }
+  const getLocation = useGeolocation({ required: false });
 
   async function handleSubmit(e) {
     e.preventDefault();

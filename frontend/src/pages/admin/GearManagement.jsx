@@ -5,6 +5,7 @@ import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
 import usePagination from '../../hooks/usePagination.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
+import useGearForm from '../../hooks/useGearForm.js';
 
 export default function GearManagement() {
   const { getToken } = useAuth();
@@ -28,21 +29,15 @@ export default function GearManagement() {
   const { data: gear, pagination, loading, error: fetchError, fetchPage, refetchCurrentPage } =
     usePagination('/gear', { extraParams: { status: statusFilter, search: debouncedSearch } });
 
-  const emptyForm = {
-    name: '',
-    description: '',
-    category: '',
-    tags: '',
-    defaultLoanDays: 7,
-  };
-  const [form, setForm] = useState(emptyForm);
+  const {
+    form, setForm, saving, setSaving,
+    showNewCategory, newCategory,
+    populateForm, resetForm, buildBody,
+    handleCategoryChange, handleNewCategoryInput,
+  } = useGearForm();
+
   // shortId of the item currently being edited (read-only display)
   const [editingShortId, setEditingShortId] = useState(null);
-  // show a saving/loading state while submitting the add/edit form
-  const [saving, setSaving] = useState(false);
-  // show inline input to create a new category
-  const [showNewCategory, setShowNewCategory] = useState(false);
-  const [newCategory, setNewCategory] = useState('');
 
   // Fetch gear when filters or page change
   useEffect(() => {
@@ -55,32 +50,16 @@ export default function GearManagement() {
   }, []);
 
   function handleEdit(item) {
-    setForm({
-      name: item.name,
-      description: item.description || '',
-      category: item.category || '',
-      tags: (item.tags || []).join(', '),
-      defaultLoanDays: item.defaultLoanDays,
-    });
+    populateForm(item);
     setEditingId(item.id);
     setEditingShortId(item.shortId || null);
-    // ensure the create-new UI is reset when editing
-    setShowNewCategory(false);
-    setNewCategory('');
     setShowForm(true);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    const body = {
-      ...form,
-      tags: form.tags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean),
-      defaultLoanDays: parseInt(form.defaultLoanDays, 10) || 7,
-    };
+    const body = buildBody();
 
     setSaving(true);
     try {
@@ -92,10 +71,7 @@ export default function GearManagement() {
       setShowForm(false);
       setEditingId(null);
       setEditingShortId(null);
-      setForm(emptyForm);
-      // reset create-new UI state
-      setShowNewCategory(false);
-      setNewCategory('');
+      resetForm();
       refetchCurrentPage();
       // Refresh categories in case a new one was created
       api('/gear/categories').then(setCategories).catch(() => {});
@@ -228,18 +204,7 @@ export default function GearManagement() {
                 <label className="block text-sm font-medium mb-1">Category</label>
                 <select
                   value={showNewCategory ? '__create_new__' : (form.category || '')}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === '__create_new__') {
-                      setShowNewCategory(true);
-                      setNewCategory('');
-                      setForm({ ...form, category: '' });
-                    } else {
-                      setShowNewCategory(false);
-                      setNewCategory('');
-                      setForm({ ...form, category: val });
-                    }
-                  }}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
                   className="w-full border rounded-lg px-3 py-2"
                 >
                   <option value="">—</option>
@@ -256,10 +221,7 @@ export default function GearManagement() {
                   <div className="mt-2">
                     <input
                       value={newCategory}
-                      onChange={(e) => {
-                        setNewCategory(e.target.value);
-                        setForm({ ...form, category: e.target.value });
-                      }}
+                      onChange={(e) => handleNewCategoryInput(e.target.value)}
                       placeholder="New category name"
                       className="w-full border rounded-lg px-3 py-2"
                     />
