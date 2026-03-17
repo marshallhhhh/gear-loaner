@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
+import ActionBadge from '../../components/ActionBadge.jsx';
+import HistoryDetailModal from '../../components/HistoryDetailModal.jsx';
 
 export default function GearDetail() {
   const { id } = useParams();
@@ -31,9 +33,8 @@ export default function GearDetail() {
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategory, setNewCategory] = useState('');
 
-  const [lostReportEntry, setLostReportEntry] = useState(null);
-  // selected history entry for checkout/return detail modal
-  const [historyEntry, setHistoryEntry] = useState(null);
+  // selected history entry for the detail modal (Checkout, Return, or Reported Lost)
+  const [selectedEntry, setSelectedEntry] = useState(null);
 
   useEffect(() => {
     fetchDetail();
@@ -429,8 +430,9 @@ export default function GearDetail() {
                 key={i}
                 className={`hover:bg-gray-50 ${['Reported Lost', 'Checkout', 'Return'].includes(entry.action) ? 'cursor-pointer' : ''}`}
                 onClick={() => {
-                  if (entry.action === 'Reported Lost') setLostReportEntry(entry);
-                  if (entry.action === 'Checkout' || entry.action === 'Return') setHistoryEntry(entry);
+                  if (['Reported Lost', 'Checkout', 'Return'].includes(entry.action)) {
+                    setSelectedEntry(entry);
+                  }
                 }}
               >
                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
@@ -457,189 +459,8 @@ export default function GearDetail() {
         </table>
       </div>
 
-      {/* Lost Report Modal */}
-      {lostReportEntry && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setLostReportEntry(null)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                  Reported Lost
-                </span>
-                <span className="text-gray-700">Lost Report Details</span>
-              </h2>
-              <button
-                onClick={() => setLostReportEntry(null)}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-
-            <dl className="space-y-3 text-sm">
-              <div>
-                <dt className="text-gray-500">Reported At</dt>
-                <dd className="font-medium mt-0.5">
-                  {new Date(lostReportEntry.time).toLocaleString()}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Reported By</dt>
-                <dd className="font-medium mt-0.5">{lostReportEntry.user}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Location (GPS)</dt>
-                <dd className="font-medium font-mono mt-0.5">{lostReportEntry.location}</dd>
-              </div>
-              {lostReportEntry.details?.contactInfo && (
-                <div>
-                  <dt className="text-gray-500">Contact Info</dt>
-                  <dd className="font-medium mt-0.5">{lostReportEntry.details.contactInfo}</dd>
-                </div>
-              )}
-              {lostReportEntry.details?.notes && (
-                <div>
-                  <dt className="text-gray-500">Notes</dt>
-                  <dd className="mt-0.5 text-gray-800 whitespace-pre-wrap">
-                    {lostReportEntry.details.notes}
-                  </dd>
-                </div>
-              )}
-              {!lostReportEntry.details?.contactInfo && !lostReportEntry.details?.notes && (
-                <div className="text-gray-400 italic">No additional details provided.</div>
-              )}
-            </dl>
-
-            <div className="mt-6 text-right">
-              <button
-                onClick={() => setLostReportEntry(null)}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Checkout / Return Modal (reuses lost modal styling) */}
-      {historyEntry && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setHistoryEntry(null)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <ActionBadge action={historyEntry.action} />
-                <span className="text-gray-700">{historyEntry.action} Details</span>
-              </h2>
-              <button
-                onClick={() => setHistoryEntry(null)}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-
-            <dl className="space-y-3 text-sm">
-              <div>
-                <dt className="text-gray-500">Time</dt>
-                <dd className="font-medium mt-0.5">{new Date(historyEntry.time).toLocaleString()}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">User</dt>
-                <dd className="font-medium mt-0.5">{historyEntry.user}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Location (GPS)</dt>
-                <dd className="font-medium font-mono mt-0.5">{historyEntry.location}</dd>
-              </div>
-
-              {historyEntry.details?.dueDate && (
-                <div>
-                  <dt className="text-gray-500">Due Date</dt>
-                  <dd className="font-medium mt-0.5">{new Date(historyEntry.details.dueDate).toLocaleDateString()}</dd>
-                </div>
-              )}
-
-              {historyEntry.details?.returnedAt && (
-                <div>
-                  <dt className="text-gray-500">Returned At</dt>
-                  <dd className="font-medium mt-0.5">{new Date(historyEntry.details.returnedAt).toLocaleString()}</dd>
-                </div>
-              )}
-
-              {historyEntry.details?.contactInfo && (
-                <div>
-                  <dt className="text-gray-500">Contact Info</dt>
-                  <dd className="font-medium mt-0.5">{historyEntry.details.contactInfo}</dd>
-                </div>
-              )}
-
-              {historyEntry.details?.notes && (
-                <div>
-                  <dt className="text-gray-500">Notes</dt>
-                  <dd className="mt-0.5 text-gray-800 whitespace-pre-wrap">{historyEntry.details.notes}</dd>
-                </div>
-              )}
-
-              {!historyEntry.details?.contactInfo && !historyEntry.details?.notes && !historyEntry.details?.dueDate && !historyEntry.details?.returnedAt && (
-                <div className="text-gray-400 italic">No additional details provided.</div>
-              )}
-            </dl>
-
-            <div className="mt-6 text-right">
-              <button
-                onClick={() => setHistoryEntry(null)}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Lost Report / Checkout / Return Detail Modal */}
+      <HistoryDetailModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
     </div>
-  );
-}
-
-const actionColors = {
-  Checkout: 'bg-blue-100 text-blue-800',
-  Return: 'bg-green-100 text-green-800',
-  'Reported Lost': 'bg-red-100 text-red-800',
-  UPDATE: 'bg-yellow-100 text-yellow-800',
-  OVERRIDE: 'bg-purple-100 text-purple-800',
-  DELETE: 'bg-red-100 text-red-800',
-  AVAILABLE: 'bg-green-100 text-green-800',
-  CHECKED_OUT: 'bg-blue-100 text-blue-800',
-  LOST: 'bg-red-100 text-red-800',
-  RETIRED: 'bg-gray-100 text-gray-800',
-};
-
-const actionLabels = {
-  AVAILABLE: 'Status → Available',
-  CHECKED_OUT: 'Status → Checked Out',
-  LOST: 'Status → Lost',
-  RETIRED: 'Status → Retired',
-};
-
-function ActionBadge({ action }) {
-  const className = actionColors[action] || 'bg-gray-100 text-gray-700';
-  const label = actionLabels[action] || action;
-  return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>
-      {label}
-    </span>
   );
 }
