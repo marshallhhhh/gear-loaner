@@ -41,7 +41,6 @@ model Gear {
   id              String     @id @default(uuid())
   name            String
   description     String?
-  // normalized relation to Category model
   categoryId      String?
   category        Category?  @relation(fields: [categoryId], references: [id])
   tags            String[]   @default([])
@@ -57,10 +56,6 @@ model Gear {
   actions Action[]
 }
 
-// Optional dedicated categories table. Gear items still store a simple
-// `category` string for backwards compatibility, but newly created/updated
-// categories will be upserted here so the frontend can fetch the list
-// efficiently via the `/gear/categories` endpoint.
 model Category {
   id        String   @id @default(uuid())
   name      String   @unique

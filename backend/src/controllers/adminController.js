@@ -117,6 +117,7 @@ export async function getAdminGearDetail(req, res, next) {
     const gear = await prisma.gear.findUnique({
       where: { id: gearId },
       include: {
+        category: { select: { name: true } },
         loans: {
           include: {
             user: { select: { id: true, email: true, fullName: true } },
@@ -224,6 +225,9 @@ export async function getAdminGearDetail(req, res, next) {
 
     // Sort by time descending
     history.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+    // Normalize category relation to string (legacy frontend shape)
+    gear.category = gear.category?.name || null;
 
     res.json({
       gear,
