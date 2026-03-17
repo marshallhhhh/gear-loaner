@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
@@ -8,33 +8,24 @@ export default function GearManagement() {
   const { getToken } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [allGear, setAllGear] = useState([]);
+  const [gear, setGear] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const [fetchError, setFetchError] = useState('');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 50, total: 0, totalPages: 0 });
+  const [categories, setCategories] = useState([]);
   const statusFilter = searchParams.get('status') || '';
 
-  // client-side filtering — no extra API calls when filter/search changes
-  const gear = allGear.filter((item) => {
-    if (statusFilter === 'REPORTED_LOST') {
-      if (!item.reportedLost || item.loanStatus === 'LOST') return false;
-    } else if (statusFilter && item.loanStatus !== statusFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        item.name?.toLowerCase().includes(q) ||
-        item.description?.toLowerCase().includes(q) ||
-        item.category?.toLowerCase().includes(q) ||
-        item.shortId?.toLowerCase().includes(q) ||
-        (item.tags || []).some((t) => t.toLowerCase().includes(q))
-      );
-    }
-    return true;
-  });
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const emptyForm = {
     name: '',
@@ -52,24 +43,33 @@ export default function GearManagement() {
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategory, setNewCategory] = useState('');
 
-  // derive a list of existing categories from the full gear list (not filtered)
-  const categories = Array.from(new Set(allGear.map((g) => g.category).filter(Boolean)));
-
-  useEffect(() => {
-    fetchGear();
-  }, []);
-
-  async function fetchGear() {
+  const fetchGear = useCallback(async (page = 1) => {
     try {
-      const data = await api('/gear', { token: await getToken() });
-      setAllGear(data);
+      const params = new URLSearchParams();
+      params.set('page', page);
+      params.set('pageSize', '50');
+      if (statusFilter) params.set('status', statusFilter);
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      const result = await api(`/gear?${params}`, { token: await getToken() });
+      setGear(result.data);
+      setPagination(result.pagination);
       setFetchError('');
     } catch (err) {
       setFetchError(err.message);
     } finally {
       setLoading(false);
     }
-  }
+  }, [getToken, statusFilter, debouncedSearch]);
+
+  // Fetch gear when filters or page change
+  useEffect(() => {
+    fetchGear(1);
+  }, [fetchGear]);
+
+  // Fetch categories once
+  useEffect(() => {
+    api('/gear/categories').then(setCategories).catch(() => {});
+  }, []);
 
   function handleEdit(item) {
     setForm({
@@ -113,7 +113,9 @@ export default function GearManagement() {
       // reset create-new UI state
       setShowNewCategory(false);
       setNewCategory('');
-      fetchGear();
+      fetchGear(pagination.page);
+      // Refresh categories in case a new one was created
+      api('/gear/categories').then(setCategories).catch(() => {});
     } catch (err) {
       setError(err.message);
     } finally {
@@ -126,7 +128,7 @@ export default function GearManagement() {
     try {
       await api(`/gear/${id}`, { method: 'DELETE', token: await getToken() });
       setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
-      fetchGear();
+      fetchGear(pagination.page);
     } catch (err) {
       alert(err.message);
     }
@@ -150,7 +152,7 @@ export default function GearManagement() {
   }
 
   function handlePrintSelected() {
-    const items = allGear.filter((g) => selectedIds.has(g.id));
+    const items = gear.filter((g) => selectedIds.has(g.id));
     if (items.length === 0) return;
     navigate('/admin/print-tags', { state: { gearItems: items } });
   }
@@ -406,6 +408,30 @@ export default function GearManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+          <span>Showing {gear.length} of {pagination.total} items</span>
+          <div className="flex gap-2">
+            <button
+              disabled={pagination.page <= 1}
+              onClick={() => fetchGear(pagination.page - 1)}
+              className="px-3 py-1 border rounded disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1">Page {pagination.page} of {pagination.totalPages}</span>
+            <button
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => fetchGear(pagination.page + 1)}
+              className="px-3 py-1 border rounded disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

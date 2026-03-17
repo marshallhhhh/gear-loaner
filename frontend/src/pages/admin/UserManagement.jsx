@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 
@@ -7,23 +7,34 @@ export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 50, total: 0, totalPages: 0 });
 
+  // Debounce search input
   useEffect(() => {
-    const timer = setTimeout(() => fetchUsers(), 300);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async (page = 1) => {
     try {
-      const params = search ? `?search=${encodeURIComponent(search)}` : '';
-      const data = await api(`/users${params}`, { token: await getToken() });
-      setUsers(data);
+      const params = new URLSearchParams();
+      params.set('page', page);
+      params.set('pageSize', '50');
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      const result = await api(`/users?${params}`, { token: await getToken() });
+      setUsers(result.data);
+      setPagination(result.pagination);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }
+  }, [getToken, debouncedSearch]);
+
+  useEffect(() => {
+    fetchUsers(1);
+  }, [fetchUsers]);
 
   async function toggleActive(userId, currentState) {
     try {
@@ -32,7 +43,7 @@ export default function UserManagement() {
         token: await getToken(),
         body: { isActive: !currentState },
       });
-      fetchUsers();
+      fetchUsers(pagination.page);
     } catch (err) {
       alert(err.message);
     }
@@ -48,7 +59,7 @@ export default function UserManagement() {
         token: await getToken(),
         body: { role: newRole },
       });
-      fetchUsers();
+      fetchUsers(pagination.page);
     } catch (err) {
       alert(err.message);
     }
@@ -142,6 +153,30 @@ export default function UserManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+          <span>Showing {users.length} of {pagination.total} users</span>
+          <div className="flex gap-2">
+            <button
+              disabled={pagination.page <= 1}
+              onClick={() => fetchUsers(pagination.page - 1)}
+              className="px-3 py-1 border rounded disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1">Page {pagination.page} of {pagination.totalPages}</span>
+            <button
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => fetchUsers(pagination.page + 1)}
+              className="px-3 py-1 border rounded disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

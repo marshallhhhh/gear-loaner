@@ -1,5 +1,7 @@
 import prisma from '../config/prisma.js';
 import { stringify } from 'csv-stringify/sync';
+import { getActiveReportedLostGearIds } from '../services/reportedLostService.js';
+import { categoryName, normalizeGearCategory } from '../services/normalize.js';
 
 export async function exportLoans(req, res, next) {
   try {
@@ -15,7 +17,7 @@ export async function exportLoans(req, res, next) {
       'Loan ID': l.id,
       'Gear Name': l.gearItem.name,
       'Serial Number': l.gearItem.serialNumber || '',
-      Category: l.gearItem.category?.name || '',
+      Category: categoryName(l.gearItem.category, ''),
       'User Email': l.user.email,
       'User Name': l.user.fullName || '',
       Status: l.status,
@@ -46,7 +48,7 @@ export async function exportGear(req, res, next) {
       ID: g.id,
       Name: g.name,
       Description: g.description || '',
-      Category: g.category?.name || '',
+      Category: categoryName(g.category, ''),
       Tags: g.tags.join(', '),
       'Serial Number': g.serialNumber || '',
       Status: g.loanStatus,
@@ -100,50 +102,26 @@ export async function getDashboardStats(req, res, next) {
   }
 }
 
-/**
- * Returns the set of gear IDs whose most recent Action is REPORT_LOST.
- * Items where a subsequent action (CHECKOUT, RETURN, etc.) occurred are excluded.
- */
-async function getActiveReportedLostGearIds() {
-  const candidates = await prisma.action.findMany({
-    where: { type: 'REPORT_LOST' },
-    select: { gearItemId: true },
-    distinct: ['gearItemId'],
-  });
-
-  if (candidates.length === 0) return new Set();
-
-  const latestActions = await Promise.all(
-    candidates.map(({ gearItemId }) =>
-      prisma.action.findFirst({
-        where: { gearItemId },
-        orderBy: { createdAt: 'desc' },
-        select: { gearItemId: true, type: true },
-      })
-    )
-  );
-
-  return new Set(
-    latestActions
-      .filter((a) => a?.type === 'REPORT_LOST')
-      .map((a) => a.gearItemId)
-  );
-}
-
 export async function getAuditLog(req, res, next) {
   try {
     const { entity, action, limit } = req.query;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || limit, 10) || 50, 1), 500);
     const where = {};
     if (entity) where.entity = entity;
     if (action) where.action = action;
 
-    const logs = await prisma.auditLog.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: Math.min(parseInt(limit, 10) || 100, 500),
-    });
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.auditLog.count({ where }),
+    ]);
 
-    res.json(logs);
+    res.json({ data: logs, pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } });
   } catch (err) {
     next(err);
   }
@@ -275,7 +253,7 @@ export async function getAdminGearDetail(req, res, next) {
     history.sort((a, b) => new Date(b.time) - new Date(a.time));
 
     // Normalize category relation to string (legacy frontend shape)
-    gear.category = gear.category?.name || null;
+    normalizeGearCategory(gear);
 
     res.json({
       gear,

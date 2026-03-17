@@ -1,49 +1,37 @@
 import prisma from '../config/prisma.js';
+import logger from '../config/logger.js';
 import { generateAndStoreQRCode } from '../services/qrCodeService.js';
 import { logAction } from '../services/auditService.js';
 import { generateShortId } from '../services/shortIdService.js';
+import { getActiveReportedLostGearIds } from '../services/reportedLostService.js';
+import { categoryName, normalizeGearCategory } from '../services/normalize.js';
 
 /** Matches the AAA-XXX short ID format */
 const SHORT_ID_RE = /^[A-Za-z]{3}-\d{3}$/;
 
-/**
- * Returns the set of gear IDs whose most recent Action is REPORT_LOST.
- * Items where a subsequent action (CHECKOUT, RETURN, etc.) occurred are excluded.
- */
-async function getActiveReportedLostGearIds() {
-  const candidates = await prisma.action.findMany({
-    where: { type: 'REPORT_LOST' },
-    select: { gearItemId: true },
-    distinct: ['gearItemId'],
-  });
+const MAX_PAGE_SIZE = 200;
+const DEFAULT_PAGE_SIZE = 50;
 
-  if (candidates.length === 0) return new Set();
-
-  const latestActions = await Promise.all(
-    candidates.map(({ gearItemId }) =>
-      prisma.action.findFirst({
-        where: { gearItemId },
-        orderBy: { createdAt: 'desc' },
-        select: { gearItemId: true, type: true },
-      })
-    )
-  );
-
-  return new Set(
-    latestActions
-      .filter((a) => a?.type === 'REPORT_LOST')
-      .map((a) => a.gearItemId)
-  );
+/** Parse page / pageSize query params into skip / take values. */
+function parsePagination(query) {
+  const page = Math.max(parseInt(query.page, 10) || 1, 1);
+  const pageSize = Math.min(Math.max(parseInt(query.pageSize, 10) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+  return { page, pageSize, skip: (page - 1) * pageSize, take: pageSize };
 }
 
 export async function listGear(req, res, next) {
   try {
     const { category, status, search } = req.query;
+    const { page, pageSize, skip, take } = parsePagination(req.query);
     const where = {};
 
-    // Build the set of gear IDs with an *active* lost report.
-    // A report is active only when the most recent Action for the gear is REPORT_LOST.
-    const activeReportedLostIds = await getActiveReportedLostGearIds();
+    // Only compute reported-lost set when the caller needs it:
+    // 1. Filtering by REPORTED_LOST status, or
+    // 2. Admin users who see the reportedLost badge on every item
+    const needReportedLost = status === 'REPORTED_LOST' || req.profile?.role === 'ADMIN';
+    const activeReportedLostIds = needReportedLost
+      ? await getActiveReportedLostGearIds()
+      : new Set();
 
     // For the special REPORTED_LOST filter, show only actively-reported items
     if (status === 'REPORTED_LOST') {
@@ -64,19 +52,24 @@ export async function listGear(req, res, next) {
       ];
     }
 
-    const gear = await prisma.gear.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: { category: { select: { name: true } } },
-    });
+    const [gear, total] = await Promise.all([
+      prisma.gear.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: { category: { select: { name: true } } },
+        skip,
+        take,
+      }),
+      prisma.gear.count({ where }),
+    ]);
 
     // Normalize response shape: return `category` as a string (legacy shape)
-    const normalized = gear.map((g) => ({
+    const data = gear.map((g) => ({
       ...g,
-      category: g.category?.name || null,
+      category: categoryName(g.category),
       reportedLost: activeReportedLostIds.has(g.id),
     }));
-    res.json(normalized);
+    res.json({ data, pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } });
   } catch (err) {
     next(err);
   }
@@ -117,7 +110,7 @@ export async function getGear(req, res, next) {
     }
 
     // Normalize category to string for legacy frontend
-    gear.category = gear.category?.name || null;
+    normalizeGearCategory(gear);
 
     res.json(gear);
   } catch (err) {
@@ -128,10 +121,6 @@ export async function getGear(req, res, next) {
 export async function createGear(req, res, next) {
   try {
     const { name, description, category, tags, serialNumber, defaultLoanDays } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
-    }
 
     // Generate shortId before creating so it can be stored atomically
     const shortId = await generateShortId(name, category);
@@ -146,19 +135,19 @@ export async function createGear(req, res, next) {
           create: { name: category },
         });
       } catch (catErr) {
-        console.error('Category upsert failed during create:', catErr.message);
+        logger.error({ err: catErr }, 'Category upsert failed during create');
       }
     }
 
     const createData = {
       name,
       description: description || null,
-      tags: tags || [],
+      tags,
       // treat empty string or whitespace-only as null so DB stores NULL instead of ""
       serialNumber: typeof serialNumber === 'string' && serialNumber.trim() !== ''
         ? serialNumber.trim()
         : null,
-      defaultLoanDays: defaultLoanDays || 7,
+      defaultLoanDays,
       shortId,
     };
 
@@ -186,7 +175,7 @@ export async function createGear(req, res, next) {
       });
       gear.qrCodeUrl = qrCodeUrl;
     } catch (qrErr) {
-      console.error('QR code generation failed:', qrErr.message);
+      logger.error({ err: qrErr }, 'QR code generation failed');
     }
 
     await logAction({
@@ -224,19 +213,8 @@ export async function updateGear(req, res, next) {
         ? serialNumber.trim()
         : null;
     }
-    if (defaultLoanDays !== undefined) {
-      const d = Number(defaultLoanDays);
-      if (!Number.isInteger(d) || d < 1 || d > 30) {
-        return res.status(400).json({ error: 'defaultLoanDays must be between 1 and 30' });
-      }
-      data.defaultLoanDays = defaultLoanDays;
-    }
-    
-    const VALID_GEAR_STATUSES = ['AVAILABLE', 'CHECKED_OUT', 'LOST', 'RETIRED'];
-    if (loanStatus !== undefined) {
-      if (!VALID_GEAR_STATUSES.includes(loanStatus)) return res.status(400).json({ error: `Invalid loanStatus` });
-      data.loanStatus = loanStatus;
-    }
+    if (defaultLoanDays !== undefined) data.defaultLoanDays = Number(defaultLoanDays);
+    if (loanStatus !== undefined) data.loanStatus = loanStatus;
 
     // Handle category relation explicitly
     if (category !== undefined) {
@@ -253,7 +231,7 @@ export async function updateGear(req, res, next) {
           });
           data.category = { connect: { id: catRec.id } };
         } catch (catErr) {
-          console.error('Category upsert failed on update:', catErr.message);
+          logger.error({ err: catErr }, 'Category upsert failed on update');
         }
       }
     }
@@ -265,7 +243,7 @@ export async function updateGear(req, res, next) {
     });
 
     // Normalize category for response
-    gear.category = gear.category?.name || null;
+    normalizeGearCategory(gear);
 
     // Determine audit action: use the new status value when loanStatus changed,
     // otherwise fall back to generic UPDATE.
@@ -382,20 +360,8 @@ export async function reportLost(req, res, next) {
 
 export async function getCategories(req, res, next) {
   try {
-    // Prefer the dedicated Category table if available
-    if (prisma.category) {
-      const cats = await prisma.category.findMany({ select: { name: true }, orderBy: { name: 'asc' } });
-      return res.json(cats.map((c) => c.name));
-    }
-
-    // Fallback for older schema: derive categories from gear table
-    const categories = await prisma.gear.findMany({
-      where: { category: { not: null } },
-      select: { category: true },
-      distinct: ['category'],
-      orderBy: { category: 'asc' },
-    });
-    res.json(categories.map((c) => c.category));
+    const cats = await prisma.category.findMany({ select: { name: true }, orderBy: { name: 'asc' } });
+    res.json(cats.map((c) => c.name));
   } catch (err) {
     next(err);
   }

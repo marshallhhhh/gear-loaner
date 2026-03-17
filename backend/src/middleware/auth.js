@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import prisma from '../config/prisma.js';
+import logger from '../config/logger.js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const JWKS = createRemoteJWKSet(
@@ -48,7 +49,7 @@ export async function authenticate(req, res, next) {
     req.profile = profile;
     next();
   } catch (err) {
-    console.log(err)
+    logger.warn({ err }, 'Auth token verification failed');
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }

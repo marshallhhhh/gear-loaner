@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../config/supabase.js';
 import { api } from '../config/api.js';
 
@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function signUp(email, password, fullName) {
+  const signUp = useCallback(async (email, password, fullName) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -51,29 +51,29 @@ export function AuthProvider({ children }) {
     });
     if (error) throw error;
     return data;
-  }
+  }, []);
 
-  async function signIn(email, password) {
+  const signIn = useCallback(async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     if (error) throw error;
     return data;
-  }
+  }, []);
 
-  async function signOut() {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
-  }
+  }, []);
 
-  async function getToken() {
+  const getToken = useCallback(async () => {
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     return currentSession?.access_token || null;
-  }
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     session,
     profile,
     loading,
@@ -83,7 +83,7 @@ export function AuthProvider({ children }) {
     getToken,
     isAdmin: profile?.role === 'ADMIN',
     isAuthenticated: !!session,
-  };
+  }), [session, profile, loading, signUp, signIn, signOut, getToken]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

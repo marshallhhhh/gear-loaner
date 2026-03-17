@@ -70,9 +70,9 @@ model Category {
 model Loan {
   id           String     @id @default(uuid())
   gearItemId   String
-  gearItem     Gear       @relation(fields: [gearItemId], references: [id])
+  gearItem     Gear       @relation(fields: [gearItemId], references: [id], onDelete: Cascade)
   userId       String
-  user         Profile    @relation(fields: [userId], references: [id])
+  user         Profile    @relation(fields: [userId], references: [id], onDelete: Restrict)
   status       LoanStatus @default(ACTIVE)
   dueDate      DateTime
   checkoutDate DateTime   @default(now())
@@ -98,9 +98,9 @@ model Action {
   id         String     @id @default(uuid())
   type       ActionType
   userId     String?
-  user       Profile?   @relation(fields: [userId], references: [id])
+  user       Profile?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   gearItemId String
-  gearItem   Gear       @relation(fields: [gearItemId], references: [id])
+  gearItem   Gear       @relation(fields: [gearItemId], references: [id], onDelete: Cascade)
   latitude   Float?
   longitude  Float?
   details    Json?

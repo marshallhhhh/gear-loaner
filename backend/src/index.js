@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import logger from './config/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import gearRoutes from './routes/gear.js';
 import loanRoutes from './routes/loans.js';
@@ -11,18 +12,21 @@ import adminRoutes from './routes/admin.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const isProd = process.env.NODE_ENV === 'production';
 
 // Security
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL || (isProd ? false : 'http://localhost:5173'),
     credentials: true,
   })
 );
 
-// Trust proxy for correct req.ip behind reverse proxies
-app.set('trust proxy', 1);
+// Trust proxy for correct req.ip behind reverse proxies (production only)
+if (isProd) {
+  app.set('trust proxy', 1);
+}
 
 // Rate limiting
 app.use(
@@ -52,7 +56,7 @@ app.get('/api/health', (req, res) => {
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info({ port: PORT }, 'Server running');
 });
 
 export default app;

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireRole } from '../middleware/roles.js';
+import { validateQuery } from '../middleware/validate.js';
+import { auditLogQuerySchema } from '../schemas.js';
 import {
   exportLoans,
   exportGear,
@@ -16,7 +18,7 @@ router.use(authenticate, requireRole('ADMIN'));
 router.get('/stats', getDashboardStats);
 router.get('/export/loans', exportLoans);
 router.get('/export/gear', exportGear);
-router.get('/audit-log', getAuditLog);
+router.get('/audit-log', validateQuery(auditLogQuerySchema), getAuditLog);
 router.get('/gear/:id', getAdminGearDetail);
 
 export default router;

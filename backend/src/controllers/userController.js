@@ -1,9 +1,19 @@
 import prisma from '../config/prisma.js';
 import { logAction } from '../services/auditService.js';
 
+const MAX_PAGE_SIZE = 200;
+const DEFAULT_PAGE_SIZE = 50;
+
+function parsePagination(query) {
+  const page = Math.max(parseInt(query.page, 10) || 1, 1);
+  const pageSize = Math.min(Math.max(parseInt(query.pageSize, 10) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+  return { page, pageSize, skip: (page - 1) * pageSize, take: pageSize };
+}
+
 export async function listUsers(req, res, next) {
   try {
     const { search, role, isActive } = req.query;
+    const { page, pageSize, skip, take } = parsePagination(req.query);
     const where = {};
 
     if (role) where.role = role;
@@ -15,12 +25,17 @@ export async function listUsers(req, res, next) {
       ];
     }
 
-    const users = await prisma.profile.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
+    const [users, total] = await Promise.all([
+      prisma.profile.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.profile.count({ where }),
+    ]);
 
-    res.json(users);
+    res.json({ data: users, pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } });
   } catch (err) {
     next(err);
   }
@@ -53,9 +68,7 @@ export async function updateUser(req, res, next) {
     const { role, isActive, fullName } = req.body;
     const data = {};
 
-    const VALID_ROLES = ['MEMBER', 'ADMIN'];
     if (role !== undefined) {
-      if (!VALID_ROLES.includes(role)) return res.status(400).json({ error: 'Invalid role' });
       if (req.params.id === req.profile.id && role !== 'ADMIN') {
         return res.status(400).json({ error: 'Cannot demote yourself' });
       }

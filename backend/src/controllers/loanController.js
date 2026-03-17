@@ -1,7 +1,10 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../config/prisma.js';
+import logger from '../config/logger.js';
 import { hasOverdueLoans, calculateDueDate } from '../services/loanService.js';
 import { sendCheckoutConfirmation, sendReturnConfirmation } from '../services/emailService.js';
 import { logAction } from '../services/auditService.js';
+import { categoryName } from '../services/normalize.js';
 
 /** Matches the AAA-XXX short ID format */
 const SHORT_ID_RE = /^[A-Za-z]{3}-\d{3}$/;
@@ -14,9 +17,34 @@ async function resolveGear(gearItemId) {
   return prisma.gear.findUnique({ where });
 }
 
+/**
+ * Resolves gear inside a transaction with a row-level lock (SELECT ... FOR UPDATE).
+ * Prevents concurrent checkouts from both seeing AVAILABLE.
+ */
+async function resolveGearForUpdate(tx, gearItemId) {
+  const isShortId = SHORT_ID_RE.test(gearItemId);
+  const column = isShortId ? '"shortId"' : '"id"';
+  const value = isShortId ? gearItemId.toUpperCase() : gearItemId;
+
+  const rows = await tx.$queryRaw(
+    Prisma.sql`SELECT * FROM "Gear" WHERE ${Prisma.raw(column)} = ${value} FOR UPDATE`
+  );
+  return rows[0] || null;
+}
+
+const MAX_PAGE_SIZE = 200;
+const DEFAULT_PAGE_SIZE = 50;
+
+function parsePagination(query) {
+  const page = Math.max(parseInt(query.page, 10) || 1, 1);
+  const pageSize = Math.min(Math.max(parseInt(query.pageSize, 10) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+  return { page, pageSize, skip: (page - 1) * pageSize, take: pageSize };
+}
+
 export async function listLoans(req, res, next) {
   try {
     const { status, gearItemId, userId } = req.query;
+    const { page, pageSize, skip, take } = parsePagination(req.query);
     const where = {};
 
     // Members can only see their own loans
@@ -26,24 +54,35 @@ export async function listLoans(req, res, next) {
       if (userId) where.userId = userId;
     }
 
-    if (status) where.status = status;
+    // OVERDUE is computed: active loans past their due date
+    if (status === 'OVERDUE') {
+      where.status = 'ACTIVE';
+      where.dueDate = { lt: new Date() };
+    } else if (status) {
+      where.status = status;
+    }
     if (gearItemId) where.gearItemId = gearItemId;
 
-    const loans = await prisma.loan.findMany({
-      where,
-      include: {
-        gearItem: { select: { id: true, name: true, category: { select: { name: true } } } },
-        user: { select: { id: true, email: true, fullName: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [loans, total] = await Promise.all([
+      prisma.loan.findMany({
+        where,
+        include: {
+          gearItem: { select: { id: true, name: true, category: { select: { name: true } } } },
+          user: { select: { id: true, email: true, fullName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.loan.count({ where }),
+    ]);
 
     // Normalize gearItem.category to a string
-    const normalized = loans.map((l) => ({
+    const data = loans.map((l) => ({
       ...l,
-      gearItem: { ...l.gearItem, category: l.gearItem.category?.name || null },
+      gearItem: { ...l.gearItem, category: categoryName(l.gearItem.category) },
     }));
-    res.json(normalized);
+    res.json({ data, pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } });
   } catch (err) {
     next(err);
   }
@@ -60,7 +99,7 @@ export async function getMyLoans(req, res, next) {
     });
     const normalized = loans.map((l) => ({
       ...l,
-      gearItem: { ...l.gearItem, category: l.gearItem.category?.name || null },
+      gearItem: { ...l.gearItem, category: categoryName(l.gearItem.category) },
     }));
     res.json(normalized);
   } catch (err) {
@@ -72,35 +111,34 @@ export async function checkout(req, res, next) {
   try {
     const { gearItemId, durationDays, latitude, longitude, notes } = req.body;
 
-    if (!gearItemId) {
-      return res.status(400).json({ error: 'gearItemId is required' });
-    }
-
-    if (latitude == null || longitude == null) {
-      return res.status(400).json({ error: 'Location (latitude/longitude) is required for checkout' });
-    }
-
-    // Check for overdue loans
+    // Check for overdue loans (outside transaction — read-only check)
     if (await hasOverdueLoans(req.profile.id)) {
       return res.status(403).json({ error: 'You have overdue items. Please return them before checking out new gear.' });
     }
 
-    // Verify gear exists and is available
-    const gear = await resolveGear(gearItemId);
-    if (!gear) {
+    // Resolve gear ID (shortId → UUID) outside transaction for early 404
+    const gearPrecheck = await resolveGear(gearItemId);
+    if (!gearPrecheck) {
       return res.status(404).json({ error: 'Gear not found' });
     }
-    if (gear.loanStatus !== 'AVAILABLE') {
-      return res.status(409).json({ error: 'Gear is not available for checkout' });
-    }
 
-    const dueDate = calculateDueDate(durationDays, gear.defaultLoanDays);
+    // Create loan and update gear status in a transaction with row-level lock
+    const { loan, gear } = await prisma.$transaction(async (tx) => {
+      // Lock the gear row to prevent concurrent checkouts
+      const lockedGear = await resolveGearForUpdate(tx, gearItemId);
 
-    // Create loan and update gear status in a transaction
-    const loan = await prisma.$transaction(async (tx) => {
+      if (!lockedGear) {
+        throw Object.assign(new Error('Gear not found'), { status: 404 });
+      }
+      if (lockedGear.loanStatus !== 'AVAILABLE') {
+        throw Object.assign(new Error('Gear is not available for checkout'), { status: 409 });
+      }
+
+      const dueDate = calculateDueDate(durationDays, lockedGear.defaultLoanDays);
+
       const newLoan = await tx.loan.create({
         data: {
-          gearItemId: gear.id,
+          gearItemId: lockedGear.id,
           userId: req.profile.id,
           dueDate,
           notes: notes || null,
@@ -108,7 +146,7 @@ export async function checkout(req, res, next) {
       });
 
       await tx.gear.update({
-        where: { id: gear.id },
+        where: { id: lockedGear.id },
         data: { loanStatus: 'CHECKED_OUT' },
       });
 
@@ -117,13 +155,13 @@ export async function checkout(req, res, next) {
         data: {
           type: 'CHECKOUT',
           userId: req.profile.id,
-          gearItemId: gear.id,
+          gearItemId: lockedGear.id,
           latitude,
           longitude,
         },
       });
 
-      return newLoan;
+      return { loan: newLoan, gear: lockedGear };
     });
 
     await logAction({
@@ -131,15 +169,15 @@ export async function checkout(req, res, next) {
       action: 'CHECKOUT',
       entity: 'Loan',
       entityId: loan.id,
-      details: { gearItemId: gear.id, dueDate },
+      details: { gearItemId: gear.id, dueDate: loan.dueDate },
     });
 
     // Send confirmation email (non-blocking)
     sendCheckoutConfirmation({
       email: req.profile.email,
       gearName: gear.name,
-      dueDate,
-    }).catch((err) => console.error('Checkout email failed:', err.message));
+      dueDate: loan.dueDate,
+    }).catch((err) => logger.error({ err }, 'Checkout email failed'));
 
     const loanWithGear = await prisma.loan.findUnique({
       where: { id: loan.id },
@@ -147,9 +185,13 @@ export async function checkout(req, res, next) {
     });
 
     // Normalize category
-    loanWithGear.gearItem.category = loanWithGear.gearItem.category?.name || null;
+    loanWithGear.gearItem.category = categoryName(loanWithGear.gearItem.category);
     res.status(201).json(loanWithGear);
   } catch (err) {
+    // Surface custom status codes from within the transaction
+    if (err.status) {
+      return res.status(err.status).json({ error: err.message });
+    }
     next(err);
   }
 }
@@ -158,10 +200,6 @@ export async function returnGear(req, res, next) {
   try {
     const loanId = req.params.id;
     const { condition, latitude, longitude, notes } = req.body;
-
-    if (latitude == null || longitude == null) {
-      return res.status(400).json({ error: 'Location (latitude/longitude) is required for return' });
-    }
 
     const loan = await prisma.loan.findUnique({
       where: { id: loanId },
@@ -219,7 +257,7 @@ export async function returnGear(req, res, next) {
     sendReturnConfirmation({
       email: req.profile.email,
       gearName: loan.gearItem.name,
-    }).catch((err) => console.error('Return email failed:', err.message));
+    }).catch((err) => logger.error({ err }, 'Return email failed'));
 
     res.json({ message: 'Gear returned successfully' });
   } catch (err) {
@@ -231,11 +269,6 @@ export async function overrideLoan(req, res, next) {
   try {
     const loanId = req.params.id;
     const { status, dueDate, notes } = req.body;
-
-    const VALID_STATUSES = ['ACTIVE', 'RETURNED'];
-    if (status && !VALID_STATUSES.includes(status)) {
-      return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
-    }
 
     const data = {};
     if (status) data.status = status;

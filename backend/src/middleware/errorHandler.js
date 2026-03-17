@@ -1,5 +1,7 @@
+import logger from '../config/logger.js';
+
 export function errorHandler(err, req, res, _next) {
-  console.error('Unhandled error:', err);
+  logger.error({ err, method: req.method, url: req.originalUrl }, 'Unhandled error');
 
   if (err.code === 'P2025') {
     return res.status(404).json({ error: 'Record not found' });

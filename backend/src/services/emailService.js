@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import logger from '../config/logger.js';
 
 let transporter = null;
 
@@ -6,7 +7,7 @@ function getTransporter() {
   if (transporter) return transporter;
 
   if (!process.env.SMTP_HOST) {
-    console.warn('SMTP not configured — emails will be logged to console');
+    logger.warn('SMTP not configured — emails will be logged to console');
     return null;
   }
 
@@ -31,8 +32,8 @@ async function sendMail({ to, subject, html }) {
   const t = getTransporter();
 
   if (!t) {
-    console.log(`[EMAIL] To: ${to} | Subject: ${subject}`);
-    console.log(`[EMAIL] Body: ${html}`);
+    logger.info({ to, subject }, 'Email (dev mode)');
+    logger.debug({ html }, 'Email body');
     return;
   }
 
@@ -64,7 +65,7 @@ export async function sendReturnConfirmation({ email, gearName }) {
     subject: `Gear Returned: ${gearName}`,
     html: `
       <h2>Return Confirmation</h2>
-      <p>You have returned <strong>${gearName}</strong>.</p>
+      <p>You have returned <strong>${escapeHtml(gearName)}</strong>.</p>
       <p>Thank you!</p>
       <p>— TAS Uni Climbing Club</p>
     `,
@@ -77,7 +78,7 @@ export async function sendOverdueNotification({ email, gearName, dueDate }) {
     subject: `Overdue Gear: ${gearName}`,
     html: `
       <h2>Overdue Notice</h2>
-      <p>Your loan of <strong>${gearName}</strong> was due on
+      <p>Your loan of <strong>${escapeHtml(gearName)}</strong> was due on
         <strong>${new Date(dueDate).toLocaleDateString()}</strong>.</p>
       <p>Please return the gear as soon as possible.</p>
       <p>— TAS Uni Climbing Club</p>
