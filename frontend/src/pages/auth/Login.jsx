@@ -29,13 +29,13 @@ export default function Login() {
     <div className="max-w-md mx-auto mt-12">
       <h1 className="text-2xl font-bold mb-6 text-center">Sign In</h1>
 
-      {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>
-      )}
+      {error && <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="login-email" className="block text-sm font-medium mb-1">Email</label>
+          <label htmlFor="login-email" className="block text-sm font-medium mb-1">
+            Email
+          </label>
           <input
             id="login-email"
             type="email"
@@ -47,7 +47,9 @@ export default function Login() {
         </div>
 
         <div>
-          <label htmlFor="login-password" className="block text-sm font-medium mb-1">Password</label>
+          <label htmlFor="login-password" className="block text-sm font-medium mb-1">
+            Password
+          </label>
           <input
             id="login-password"
             type="password"

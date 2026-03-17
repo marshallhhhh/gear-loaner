@@ -26,14 +26,29 @@ export default function GearManagement() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data: gear, pagination, loading, error: fetchError, fetchPage, refetchCurrentPage } =
-    usePagination('/gear', { extraParams: { status: statusFilter, search: debouncedSearch } });
+  const {
+    data: gear,
+    pagination,
+    loading,
+    error: fetchError,
+    fetchPage,
+    refetchCurrentPage,
+  } = usePagination('/gear', { extraParams: { status: statusFilter, search: debouncedSearch } });
 
   const {
-    form, setForm, saving, setSaving,
-    showNewCategory, setShowNewCategory, newCategory, setNewCategory,
-    populateForm, resetForm, buildBody,
-    handleCategoryChange, handleNewCategoryInput,
+    form,
+    setForm,
+    saving,
+    setSaving,
+    showNewCategory,
+    setShowNewCategory,
+    newCategory,
+    setNewCategory,
+    populateForm,
+    resetForm,
+    buildBody,
+    handleCategoryChange,
+    handleNewCategoryInput,
   } = useGearForm();
 
   // shortId of the item currently being edited (read-only display)
@@ -46,7 +61,9 @@ export default function GearManagement() {
 
   // Fetch categories once
   useEffect(() => {
-    api('/gear/categories').then(setCategories).catch(() => {});
+    api('/gear/categories')
+      .then(setCategories)
+      .catch(() => {});
   }, []);
 
   function handleEdit(item) {
@@ -74,7 +91,9 @@ export default function GearManagement() {
       resetForm();
       refetchCurrentPage();
       // Refresh categories in case a new one was created
-      api('/gear/categories').then(setCategories).catch(() => {});
+      api('/gear/categories')
+        .then(setCategories)
+        .catch(() => {});
     } catch (err) {
       setError(err.message);
     } finally {
@@ -86,7 +105,11 @@ export default function GearManagement() {
     if (!confirm('Delete this gear item? This cannot be undone.')) return;
     try {
       await api(`/gear/${id}`, { method: 'DELETE', token: await getToken() });
-      setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       refetchCurrentPage();
     } catch (err) {
       alert(err.message);
@@ -179,13 +202,9 @@ export default function GearManagement() {
       {/* Form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 mb-6 space-y-4">
-          <h2 className="text-lg font-semibold">
-            {editingId ? 'Edit Gear' : 'Add New Gear'}
-          </h2>
+          <h2 className="text-lg font-semibold">{editingId ? 'Edit Gear' : 'Add New Gear'}</h2>
 
-          {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded text-sm">{error}</div>
-          )}
+          {error && <div className="bg-red-50 text-red-700 p-3 rounded text-sm">{error}</div>}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -198,32 +217,34 @@ export default function GearManagement() {
               />
             </div>
             <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
-                <select
-                  value={showNewCategory ? '__create_new__' : (form.category || '')}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                >
-                  <option value="">—</option>
-                  {categories.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                  {form.category && !categories.includes(form.category) && (
-                    <option value={form.category}>{form.category}</option>
-                  )}
-                  <option value="__create_new__">Create new…</option>
-                </select>
-
-                {showNewCategory && (
-                  <div className="mt-2">
-                    <input
-                      value={newCategory}
-                      onChange={(e) => handleNewCategoryInput(e.target.value)}
-                      placeholder="New category name"
-                      className="w-full border rounded-lg px-3 py-2"
-                    />
-                  </div>
+              <label className="block text-sm font-medium mb-1">Category</label>
+              <select
+                value={showNewCategory ? '__create_new__' : form.category || ''}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2"
+              >
+                <option value="">—</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                {form.category && !categories.includes(form.category) && (
+                  <option value={form.category}>{form.category}</option>
                 )}
+                <option value="__create_new__">Create new…</option>
+              </select>
+
+              {showNewCategory && (
+                <div className="mt-2">
+                  <input
+                    value={newCategory}
+                    onChange={(e) => handleNewCategoryInput(e.target.value)}
+                    placeholder="New category name"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                </div>
+              )}
             </div>
             {editingId && (
               <div>
@@ -273,7 +294,7 @@ export default function GearManagement() {
             disabled={saving}
             className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50"
           >
-            {saving ? (editingId ? 'Saving…' : 'Adding…') : (editingId ? 'Save Changes' : 'Add Gear')}
+            {saving ? (editingId ? 'Saving…' : 'Adding…') : editingId ? 'Save Changes' : 'Add Gear'}
           </button>
         </form>
       )}
@@ -314,7 +335,9 @@ export default function GearManagement() {
                     className="rounded"
                   />
                 </td>
-                <td className="px-4 py-3 font-medium text-primary-600 hover:underline">{item.name}</td>
+                <td className="px-4 py-3 font-medium text-primary-600 hover:underline">
+                  {item.name}
+                </td>
                 <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
                   {item.category || '—'}
                 </td>
@@ -326,13 +349,19 @@ export default function GearManagement() {
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(item);
+                    }}
                     className="text-primary-600 hover:underline text-xs"
                   >
                     Edit
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.id);
+                    }}
                     className="text-red-600 hover:underline text-xs"
                   >
                     Delete

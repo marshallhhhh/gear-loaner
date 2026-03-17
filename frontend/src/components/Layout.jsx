@@ -43,9 +43,7 @@ export default function Layout({ children }) {
                     </Link>
                   </>
                 )}
-                <span className="text-primary-200 text-xs hidden sm:inline">
-                  {profile?.email}
-                </span>
+                <span className="text-primary-200 text-xs hidden sm:inline">{profile?.email}</span>
                 <button
                   onClick={handleSignOut}
                   className="bg-primary-800 hover:bg-primary-900 px-3 py-1 rounded text-sm"
@@ -70,9 +68,7 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
-        {children}
-      </main>
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">{children}</main>
 
       <footer className="text-center text-xs text-gray-400 py-4 border-t">
         TAS University Climbing Club — Gear Management System

@@ -50,9 +50,7 @@ export default function ReportLost() {
     <div className="max-w-md mx-auto mt-12">
       <h1 className="text-2xl font-bold mb-6">Report Item as Lost</h1>
 
-      {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>
-      )}
+      {error && <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

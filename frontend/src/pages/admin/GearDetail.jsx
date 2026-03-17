@@ -21,10 +21,17 @@ export default function GearDetail() {
   const [error, setError] = useState('');
 
   const {
-    form, setForm, saving, setSaving,
-    showNewCategory, newCategory,
-    populateForm, resetForm,
-    buildBody, handleCategoryChange, handleNewCategoryInput,
+    form,
+    setForm,
+    saving,
+    setSaving,
+    showNewCategory,
+    newCategory,
+    populateForm,
+    resetForm,
+    buildBody,
+    handleCategoryChange,
+    handleNewCategoryInput,
   } = useGearForm({ serialNumber: '', loanStatus: 'AVAILABLE' });
 
   const [categories, setCategories] = useState([]);
@@ -88,7 +95,10 @@ export default function GearDetail() {
     return (
       <div className="text-center py-20">
         <p className="text-gray-500 mb-4">Gear not found.</p>
-        <button onClick={() => navigate('/admin/gear')} className="text-primary-600 hover:underline">
+        <button
+          onClick={() => navigate('/admin/gear')}
+          className="text-primary-600 hover:underline"
+        >
           ← Back to inventory
         </button>
       </div>
@@ -109,9 +119,7 @@ export default function GearDetail() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">{gear.name}</h1>
-          <p className="text-gray-500 text-sm font-mono mt-1">
-            {gear.shortId || gear.id}
-          </p>
+          <p className="text-gray-500 text-sm font-mono mt-1">{gear.shortId || gear.id}</p>
         </div>
         <div className="flex items-center gap-3">
           <GearStatusBadge status={gear.loanStatus} />
@@ -138,9 +146,7 @@ export default function GearDetail() {
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{error}</div>
-      )}
+      {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{error}</div>}
 
       {/* Edit Form */}
       {editing ? (
@@ -160,13 +166,15 @@ export default function GearDetail() {
             <div>
               <label className="block text-sm font-medium mb-1">Category</label>
               <select
-                value={showNewCategory ? '__create_new__' : (form.category || '')}
+                value={showNewCategory ? '__create_new__' : form.category || ''}
                 onChange={(e) => handleCategoryChange(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2"
               >
                 <option value="">—</option>
                 {categories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
                 {form.category && !categories.includes(form.category) && (
                   <option value={form.category}>{form.category}</option>
@@ -353,13 +361,13 @@ export default function GearDetail() {
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-gray-500">Checked Out</dt>
-                    <dd className="font-medium">
-                      {formatDate(activeLoan.checkoutDate)}
-                    </dd>
+                    <dd className="font-medium">{formatDate(activeLoan.checkoutDate)}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-gray-500">Due Date</dt>
-                    <dd className={`font-medium ${new Date(activeLoan.dueDate) < new Date() ? 'text-red-600' : ''}`}>
+                    <dd
+                      className={`font-medium ${new Date(activeLoan.dueDate) < new Date() ? 'text-red-600' : ''}`}
+                    >
                       {formatDate(activeLoan.dueDate)}
                       {new Date(activeLoan.dueDate) < new Date() && ' (Overdue)'}
                     </dd>
@@ -375,19 +383,22 @@ export default function GearDetail() {
                 <div className="flex items-center gap-2 text-sm">
                   <GearStatusBadge status={gear.loanStatus} />
                   <span className="text-gray-500">
-                    {gear.loanStatus === 'LOST' ? 'This item is reported lost' : 'Not currently on loan'}
+                    {gear.loanStatus === 'LOST'
+                      ? 'This item is reported lost'
+                      : 'Not currently on loan'}
                   </span>
                 </div>
               )}
             </div>
           </div>
         </div>
-      )}     
+      )}
       {/* History Table */}
       <div className="bg-white rounded-xl shadow overflow-x-auto">
         <div className="px-6 py-4 border-b">
           <h2 className="text-lg font-semibold">Activity History</h2>
-        </div>        <table className="w-full text-sm">
+        </div>{' '}
+        <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="text-left px-4 py-3 font-medium">Time</th>
@@ -414,8 +425,12 @@ export default function GearDetail() {
                 <td className="px-4 py-3 text-gray-500 font-mono text-xs">{entry.location}</td>
                 <td className="px-4 py-3">
                   <ActionBadge action={entry.action} />
-                    {(entry.action === 'Reported Lost' || entry.action === 'Checkout' || entry.action === 'Return') && (
-                    <span className="ml-2 text-xs text-gray-400 hover:text-gray-600">View details →</span>
+                  {(entry.action === 'Reported Lost' ||
+                    entry.action === 'Checkout' ||
+                    entry.action === 'Return') && (
+                    <span className="ml-2 text-xs text-gray-400 hover:text-gray-600">
+                      View details →
+                    </span>
                   )}
                 </td>
               </tr>

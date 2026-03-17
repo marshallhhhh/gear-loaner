@@ -25,6 +25,12 @@ router.post('/:id/return', authenticate, validate(returnGearSchema), returnGear)
 
 // Admin
 router.get('/', authenticate, requireRole('ADMIN'), validateQuery(listLoansQuerySchema), listLoans);
-router.put('/:id/override', authenticate, requireRole('ADMIN'), validate(overrideLoanSchema), overrideLoan);
+router.put(
+  '/:id/override',
+  authenticate,
+  requireRole('ADMIN'),
+  validate(overrideLoanSchema),
+  overrideLoan,
+);
 
 export default router;

@@ -36,9 +36,7 @@ export async function generateAndStoreQRCode(gearId, shortId) {
     throw new Error(`Failed to upload QR code: ${uploadError.message}`);
   }
 
-  const { data } = supabaseAdmin.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(filePath);
+  const { data } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(filePath);
 
   return data.publicUrl;
 }

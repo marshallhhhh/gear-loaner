@@ -11,8 +11,14 @@ export default function LoanHistory() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get('status') || '';
 
-  const { data: loans, pagination, loading, error: fetchError, fetchPage, refetchCurrentPage } =
-    usePagination('/loans', { extraParams: { status: filter } });
+  const {
+    data: loans,
+    pagination,
+    loading,
+    error: fetchError,
+    fetchPage,
+    refetchCurrentPage,
+  } = usePagination('/loans', { extraParams: { status: filter } });
 
   useEffect(() => {
     fetchPage(1);
@@ -20,9 +26,10 @@ export default function LoanHistory() {
 
   async function handleOverride(loanId, action) {
     try {
-      const body = action === 'return'
-        ? { status: 'RETURNED' }
-        : { dueDate: new Date(Date.now() + 7 * 86400000).toISOString() }; // eslint-disable-line react-hooks/purity
+      const body =
+        action === 'return'
+          ? { status: 'RETURNED' }
+          : { dueDate: new Date(Date.now() + 7 * 86400000).toISOString() }; // eslint-disable-line react-hooks/purity
 
       await api(`/loans/${loanId}/override`, {
         method: 'PUT',
@@ -80,15 +87,18 @@ export default function LoanHistory() {
           </thead>
           <tbody className="divide-y">
             {loans.map((loan) => (
-              <tr key={loan.id} className={`hover:bg-gray-50 ${isOverdue(loan) ? 'bg-red-50' : ''}`}>
+              <tr
+                key={loan.id}
+                className={`hover:bg-gray-50 ${isOverdue(loan) ? 'bg-red-50' : ''}`}
+              >
                 <td className="px-4 py-3 font-medium">{loan.gearItem.name}</td>
-                <td className="px-4 py-3 text-gray-500">
-                  {loan.user.fullName || loan.user.email}
-                </td>
+                <td className="px-4 py-3 text-gray-500">{loan.user.fullName || loan.user.email}</td>
                 <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
                   {formatDate(loan.checkoutDate)}
                 </td>
-                <td className={`px-4 py-3 ${isOverdue(loan) ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                <td
+                  className={`px-4 py-3 ${isOverdue(loan) ? 'text-red-600 font-medium' : 'text-gray-500'}`}
+                >
                   {formatDate(loan.dueDate)}
                 </td>
                 <td className="px-4 py-3">

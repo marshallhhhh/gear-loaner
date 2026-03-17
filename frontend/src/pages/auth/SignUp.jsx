@@ -31,8 +31,8 @@ export default function SignUp() {
       <div className="max-w-md mx-auto mt-12 text-center">
         <h1 className="text-2xl font-bold mb-4">Check Your Email</h1>
         <p className="text-gray-600 mb-4">
-          We've sent a confirmation link to <strong>{email}</strong>.
-          Please click it to activate your account.
+          We've sent a confirmation link to <strong>{email}</strong>. Please click it to activate
+          your account.
         </p>
         <Link to="/login" className="text-primary-600 hover:underline">
           Back to Sign In
@@ -45,13 +45,13 @@ export default function SignUp() {
     <div className="max-w-md mx-auto mt-12">
       <h1 className="text-2xl font-bold mb-6 text-center">Create Account</h1>
 
-      {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>
-      )}
+      {error && <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="signup-name" className="block text-sm font-medium mb-1">Full Name</label>
+          <label htmlFor="signup-name" className="block text-sm font-medium mb-1">
+            Full Name
+          </label>
           <input
             id="signup-name"
             type="text"
@@ -63,7 +63,9 @@ export default function SignUp() {
         </div>
 
         <div>
-          <label htmlFor="signup-email" className="block text-sm font-medium mb-1">Email</label>
+          <label htmlFor="signup-email" className="block text-sm font-medium mb-1">
+            Email
+          </label>
           <input
             id="signup-email"
             type="email"
@@ -75,7 +77,9 @@ export default function SignUp() {
         </div>
 
         <div>
-          <label htmlFor="signup-password" className="block text-sm font-medium mb-1">Password</label>
+          <label htmlFor="signup-password" className="block text-sm font-medium mb-1">
+            Password
+          </label>
           <input
             id="signup-password"
             type="password"

@@ -10,8 +10,14 @@ function mockReqResNext(overrides = {}) {
   const res = {
     statusCode: 200,
     _json: null,
-    status(code) { this.statusCode = code; return this; },
-    json(data) { this._json = data; return this; },
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(data) {
+      this._json = data;
+      return this;
+    },
   };
   const next = vi.fn();
   return { req, res, next };

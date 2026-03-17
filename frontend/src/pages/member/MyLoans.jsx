@@ -84,9 +84,7 @@ export default function MyLoans() {
                   )}
                 </div>
                 <div className="text-sm text-gray-500 mt-1">
-                  {loan.gearItem.category && (
-                    <span className="mr-3">{loan.gearItem.category}</span>
-                  )}
+                  {loan.gearItem.category && <span className="mr-3">{loan.gearItem.category}</span>}
                   <span>Checked out: {formatDate(loan.checkoutDate)}</span>
                   <span className="mx-2">•</span>
                   <span className={isOverdue(loan) ? 'text-red-600 font-medium' : ''}>

@@ -16,8 +16,13 @@ export default function UserManagement() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data: users, pagination, loading, fetchPage, refetchCurrentPage } =
-    usePagination('/users', { extraParams: { search: debouncedSearch } });
+  const {
+    data: users,
+    pagination,
+    loading,
+    fetchPage,
+    refetchCurrentPage,
+  } = usePagination('/users', { extraParams: { search: debouncedSearch } });
 
   useEffect(() => {
     fetchPage(1);
@@ -101,9 +106,7 @@ export default function UserManagement() {
                 <td className="px-4 py-3">
                   <span
                     className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                      user.isActive
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
+                      user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}
                   >
                     {user.isActive ? 'Active' : 'Inactive'}

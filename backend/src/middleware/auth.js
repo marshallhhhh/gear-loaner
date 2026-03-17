@@ -3,9 +3,7 @@ import prisma from '../config/prisma.js';
 import logger from '../config/logger.js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const JWKS = createRemoteJWKSet(
-  new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`)
-);
+const JWKS = createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`));
 
 /**
  * Verifies the Supabase JWT using JWKS and attaches user + profile to req.

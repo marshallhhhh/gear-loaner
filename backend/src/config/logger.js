@@ -5,7 +5,9 @@ const logger = pino({
   ...(process.env.NODE_ENV !== 'production' && {
     transport: { target: 'pino/file', options: { destination: 1 } },
     formatters: {
-      level(label) { return { level: label }; },
+      level(label) {
+        return { level: label };
+      },
     },
   }),
 });

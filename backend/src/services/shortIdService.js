@@ -67,9 +67,15 @@ function lowestAvailableNumber(prefix, existingIds) {
  */
 export async function generateShortId(name, category, existingIds = null) {
   // Fetch all current shortIds once if not provided
-  const allIds = existingIds ?? (await prisma.gear.findMany({
-    select: { shortId: true },
-  })).map((g) => g.shortId).filter(Boolean);
+  const allIds =
+    existingIds ??
+    (
+      await prisma.gear.findMany({
+        select: { shortId: true },
+      })
+    )
+      .map((g) => g.shortId)
+      .filter(Boolean);
 
   const existingSet = new Set(allIds);
 

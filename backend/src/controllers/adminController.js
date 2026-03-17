@@ -7,7 +7,9 @@ export async function exportLoans(req, res, next) {
   try {
     const loans = await prisma.loan.findMany({
       include: {
-        gearItem: { select: { name: true, serialNumber: true, category: { select: { name: true } } } },
+        gearItem: {
+          select: { name: true, serialNumber: true, category: { select: { name: true } } },
+        },
         user: { select: { email: true, fullName: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -83,9 +85,13 @@ export async function getDashboardStats(req, res, next) {
     // confirmed LOST by an admin.
     const activeReportedLostIds = await getActiveReportedLostGearIds();
     const confirmedLostIds = new Set(
-      (await prisma.gear.findMany({ where: { loanStatus: 'LOST' }, select: { id: true } })).map((g) => g.id)
+      (await prisma.gear.findMany({ where: { loanStatus: 'LOST' }, select: { id: true } })).map(
+        (g) => g.id,
+      ),
     );
-    const reportedLost = [...activeReportedLostIds].filter((id) => !confirmedLostIds.has(id)).length;
+    const reportedLost = [...activeReportedLostIds].filter(
+      (id) => !confirmedLostIds.has(id),
+    ).length;
 
     res.json({
       totalGear,
@@ -121,7 +127,10 @@ export async function getAuditLog(req, res, next) {
       prisma.auditLog.count({ where }),
     ]);
 
-    res.json({ data: logs, pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } });
+    res.json({
+      data: logs,
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    });
   } catch (err) {
     next(err);
   }
@@ -174,9 +183,7 @@ export async function getAdminGearDetail(req, res, next) {
 
     // Resolve user info for audit log userIds
     const auditUserIds = [
-      ...new Set(
-        [...auditLogs, ...loanAuditLogs].map((l) => l.userId).filter(Boolean)
-      ),
+      ...new Set([...auditLogs, ...loanAuditLogs].map((l) => l.userId).filter(Boolean)),
     ];
     const auditUsers = auditUserIds.length
       ? await prisma.profile.findMany({
@@ -188,9 +195,7 @@ export async function getAdminGearDetail(req, res, next) {
 
     // Helper: format location string
     function formatLoc(lat, lng) {
-      return lat != null && lng != null
-        ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-        : '—';
+      return lat != null && lng != null ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : '—';
     }
 
     // Build unified history from Action records
@@ -225,7 +230,8 @@ export async function getAdminGearDetail(req, res, next) {
     const STATUS_VALUES = new Set(['AVAILABLE', 'CHECKED_OUT', 'LOST', 'RETIRED']);
     for (const log of auditLogs) {
       const u = log.userId ? userMap[log.userId] : null;
-      if (log.action === 'CREATE' || log.action === 'REPORT_LOST' || STATUS_VALUES.has(log.action)) continue;
+      if (log.action === 'CREATE' || log.action === 'REPORT_LOST' || STATUS_VALUES.has(log.action))
+        continue;
       history.push({
         time: log.createdAt,
         user: u?.fullName || u?.email || 'System',

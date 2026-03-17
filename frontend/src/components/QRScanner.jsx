@@ -10,11 +10,15 @@ export default function QRScanner({ onScan, onError }) {
     return () => {
       const s = scannerRef.current;
       if (s) {
-        s.stop().catch(() => {}).finally(() => {
-          try {
-            s.clear();
-          } catch (_e) { /* scanner may already be cleared */ }
-        });
+        s.stop()
+          .catch(() => {})
+          .finally(() => {
+            try {
+              s.clear();
+            } catch (_e) {
+              /* scanner may already be cleared */
+            }
+          });
       }
     };
   }, []);
@@ -26,7 +30,8 @@ export default function QRScanner({ onScan, onError }) {
       const cameras = await Html5Qrcode.getCameras();
       let chosenCameraId = null;
       if (cameras && cameras.length) {
-        chosenCameraId = cameras.find((c) => /back|rear|environment/i.test(c.label))?.id || cameras[0].id;
+        chosenCameraId =
+          cameras.find((c) => /back|rear|environment/i.test(c.label))?.id || cameras[0].id;
       }
 
       const scanner = new Html5Qrcode('qr-reader');
@@ -42,7 +47,7 @@ export default function QRScanner({ onScan, onError }) {
           setScanning(false);
           onScan(decodedText);
         },
-        () => {}
+        () => {},
       );
 
       setScanning(true);
@@ -60,7 +65,9 @@ export default function QRScanner({ onScan, onError }) {
         .finally(() => {
           try {
             s.clear();
-          } catch (_e) { /* scanner may already be cleared */ }
+          } catch (_e) {
+            /* scanner may already be cleared */
+          }
         });
     }
     setScanning(false);

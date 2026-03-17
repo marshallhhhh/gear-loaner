@@ -38,7 +38,7 @@ export default function PrintTags() {
             idList.map(async (id) => {
               const data = await api(`/admin/gear/${id}`, { token: await getToken() });
               return data.gear;
-            })
+            }),
           );
           setGearItems(results.filter(Boolean));
         } else {
@@ -64,7 +64,10 @@ export default function PrintTags() {
     return (
       <div className="text-center py-20">
         <p className="text-red-600 mb-4">{error}</p>
-        <button onClick={() => navigate('/admin/gear')} className="text-primary-600 hover:underline">
+        <button
+          onClick={() => navigate('/admin/gear')}
+          className="text-primary-600 hover:underline"
+        >
           ← Back to inventory
         </button>
       </div>
@@ -75,17 +78,15 @@ export default function PrintTags() {
     return (
       <div className="text-center py-20">
         <p className="text-gray-500 mb-4">No gear items selected for printing.</p>
-        <button onClick={() => navigate('/admin/gear')} className="text-primary-600 hover:underline">
+        <button
+          onClick={() => navigate('/admin/gear')}
+          className="text-primary-600 hover:underline"
+        >
           ← Back to inventory
         </button>
       </div>
     );
   }
 
-  return (
-    <TagTemplateEditor
-      gearItems={gearItems}
-      onClose={() => navigate(-1)}
-    />
-  );
+  return <TagTemplateEditor gearItems={gearItems} onClose={() => navigate(-1)} />;
 }

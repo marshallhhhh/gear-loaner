@@ -32,7 +32,7 @@ describe('generateAndStoreQRCode', () => {
 
     expect(vi.mocked(QRCode.toBuffer)).toHaveBeenCalledWith(
       expect.stringContaining(`/gear/${shortId}`),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
@@ -41,22 +41,19 @@ describe('generateAndStoreQRCode', () => {
 
     expect(vi.mocked(QRCode.toBuffer)).toHaveBeenCalledWith(
       expect.stringContaining(`/gear/${gearId}`),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
   it('generates QR code with correct options', async () => {
     await generateAndStoreQRCode(gearId, shortId);
 
-    expect(vi.mocked(QRCode.toBuffer)).toHaveBeenCalledWith(
-      expect.any(String),
-      {
-        type: 'png',
-        width: 300,
-        margin: 2,
-        color: { dark: '#000000', light: '#ffffff' },
-      }
-    );
+    expect(vi.mocked(QRCode.toBuffer)).toHaveBeenCalledWith(expect.any(String), {
+      type: 'png',
+      width: 300,
+      margin: 2,
+      color: { dark: '#000000', light: '#ffffff' },
+    });
   });
 
   it('uploads to Supabase Storage with correct path', async () => {
@@ -69,14 +66,10 @@ describe('generateAndStoreQRCode', () => {
     await generateAndStoreQRCode(gearId, shortId);
 
     expect(vi.mocked(supabaseAdmin.storage.from)).toHaveBeenCalledWith('qr-codes');
-    expect(mockStorage.upload).toHaveBeenCalledWith(
-      `${gearId}.png`,
-      mockBuffer,
-      {
-        contentType: 'image/png',
-        upsert: true,
-      }
-    );
+    expect(mockStorage.upload).toHaveBeenCalledWith(`${gearId}.png`, mockBuffer, {
+      contentType: 'image/png',
+      upsert: true,
+    });
   });
 
   it('returns public URL from Supabase', async () => {
@@ -91,7 +84,9 @@ describe('generateAndStoreQRCode', () => {
     };
     vi.mocked(supabaseAdmin.storage.from).mockReturnValue(mockStorage);
 
-    await expect(generateAndStoreQRCode(gearId, shortId)).rejects.toThrow('Failed to upload QR code');
+    await expect(generateAndStoreQRCode(gearId, shortId)).rejects.toThrow(
+      'Failed to upload QR code',
+    );
   });
 
   it('uses APP_URL from environment in default value', async () => {
@@ -101,7 +96,7 @@ describe('generateAndStoreQRCode', () => {
 
     expect(vi.mocked(QRCode.toBuffer)).toHaveBeenCalledWith(
       expect.stringMatching(/\/gear\//),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 });
@@ -121,7 +116,7 @@ describe('generateQRCodeDataUrl', () => {
 
     expect(vi.mocked(QRCode.toDataURL)).toHaveBeenCalledWith(
       expect.stringContaining(`/gear/${shortId}`),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
@@ -130,20 +125,17 @@ describe('generateQRCodeDataUrl', () => {
 
     expect(vi.mocked(QRCode.toDataURL)).toHaveBeenCalledWith(
       expect.stringContaining(`/gear/${gearId}`),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
   it('generates QR code with correct options', async () => {
     await generateQRCodeDataUrl(gearId, shortId);
 
-    expect(vi.mocked(QRCode.toDataURL)).toHaveBeenCalledWith(
-      expect.any(String),
-      {
-        width: 300,
-        margin: 2,
-      }
-    );
+    expect(vi.mocked(QRCode.toDataURL)).toHaveBeenCalledWith(expect.any(String), {
+      width: 300,
+      margin: 2,
+    });
   });
 
   it('returns data URL', async () => {
@@ -158,7 +150,7 @@ describe('generateQRCodeDataUrl', () => {
 
     expect(vi.mocked(QRCode.toDataURL)).toHaveBeenCalledWith(
       expect.stringMatching(/\/gear\//),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 });

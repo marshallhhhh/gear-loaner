@@ -29,14 +29,18 @@ function loadSavedConfig() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return null;
 }
 
 function saveConfig(config) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 // ── Default config ───────────────────────────────────────────────────
@@ -77,7 +81,9 @@ async function renderTemplate(template, gear) {
       margin: 1,
       color: { dark: '#000000', light: '#ffffff' },
     });
-  } catch { /* fallback: leave empty */ }
+  } catch {
+    /* fallback: leave empty */
+  }
 
   let html = template;
   html = html.replace(/\{\{\s*Name\s*\}\}/g, escapeHtml(gear.name || ''));
@@ -87,7 +93,10 @@ async function renderTemplate(template, gear) {
   html = html.replace(/\{\{\s*Description\s*\}\}/g, escapeHtml(gear.description || ''));
   html = html.replace(/\{\{\s*QRCode\s*\}\}/g, qrDataUrl);
   html = html.replace(/\{\{\s*Tags\s*\}\}/g, escapeHtml((gear.tags || []).join(', ')));
-  html = html.replace(/\{\{\s*DefaultLoanDays\s*\}\}/g, escapeHtml(String(gear.defaultLoanDays ?? '')));
+  html = html.replace(
+    /\{\{\s*DefaultLoanDays\s*\}\}/g,
+    escapeHtml(String(gear.defaultLoanDays ?? '')),
+  );
   return html;
 }
 
@@ -118,20 +127,22 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
   useEffect(() => {
     let cancelled = false;
     async function render() {
-      const results = await Promise.all(
-        gearItems.map((g) => renderTemplate(config.template, g))
-      );
+      const results = await Promise.all(gearItems.map((g) => renderTemplate(config.template, g)));
       if (!cancelled) setRenderedTags(results);
     }
     render();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [config.template, gearItems]);
 
   const page = PAGE_SIZES[config.pageSize] || PAGE_SIZES.A4;
 
   // Calculate tag cell dimensions (mm)
-  const usableW = page.width - config.marginLeft - config.marginRight - (config.cols - 1) * config.paddingX;
-  const usableH = page.height - config.marginTop - config.marginBottom - (config.rows - 1) * config.paddingY;
+  const usableW =
+    page.width - config.marginLeft - config.marginRight - (config.cols - 1) * config.paddingX;
+  const usableH =
+    page.height - config.marginTop - config.marginBottom - (config.rows - 1) * config.paddingY;
   const cellW = usableW / config.cols;
   const cellH = usableH / config.rows;
 
@@ -151,8 +162,11 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
       return;
     }
 
-    const pagesHtml = pages.map((pageTags, pageIdx) => {
-      const cells = pageTags.map((html, i) => `
+    const pagesHtml = pages
+      .map((pageTags, pageIdx) => {
+        const cells = pageTags
+          .map(
+            (html, i) => `
         <div style="
           width: ${cellW}mm;
           height: ${cellH}mm;
@@ -161,9 +175,11 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
           box-sizing: border-box;
           container-type: size;
         ">${html}</div>
-      `).join('');
+      `,
+          )
+          .join('');
 
-      return `
+        return `
         <div class="print-page" style="
           width: ${page.width}mm;
           height: ${page.height}mm;
@@ -176,7 +192,8 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
           page-break-after: always;
         ">${cells}</div>
       `;
-    }).join('');
+      })
+      .join('');
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -251,7 +268,9 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
                 className="w-full border rounded-lg px-3 py-2"
               >
                 {Object.entries(PAGE_SIZES).map(([k, v]) => (
-                  <option key={k} value={k}>{v.label}</option>
+                  <option key={k} value={k}>
+                    {v.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -330,7 +349,9 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
                     min={0}
                     max={50}
                     value={config.marginBottom}
-                    onChange={(e) => set('marginBottom', Math.max(0, parseInt(e.target.value) || 0))}
+                    onChange={(e) =>
+                      set('marginBottom', Math.max(0, parseInt(e.target.value) || 0))
+                    }
                     className="w-full border rounded-lg px-3 py-1.5"
                   />
                 </div>
@@ -362,9 +383,12 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
             {/* Tag dimensions (read-only) */}
             <div className="bg-gray-50 rounded-lg p-3">
               <p className="font-medium mb-1">Tag Size</p>
-              <p className="text-gray-600">{cellW.toFixed(1)} × {cellH.toFixed(1)} mm</p>
+              <p className="text-gray-600">
+                {cellW.toFixed(1)} × {cellH.toFixed(1)} mm
+              </p>
               <p className="text-gray-500 text-xs mt-1">
-                {tagsPerPage} tags/page · {totalPages} page{totalPages !== 1 ? 's' : ''} · {gearItems.length} item{gearItems.length !== 1 ? 's' : ''}
+                {tagsPerPage} tags/page · {totalPages} page{totalPages !== 1 ? 's' : ''} ·{' '}
+                {gearItems.length} item{gearItems.length !== 1 ? 's' : ''}
               </p>
             </div>
 
@@ -484,9 +508,11 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
 
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
               <strong>Tip:</strong> The template is rendered inside a cell of size{' '}
-              <strong>{cellW.toFixed(1)} × {cellH.toFixed(1)} mm</strong>. Use inline styles for
-              best results. The <code>{'{{ QRCode }}'}</code> placeholder inserts a data-URL you can
-              use in an <code>&lt;img&gt;</code> tag.
+              <strong>
+                {cellW.toFixed(1)} × {cellH.toFixed(1)} mm
+              </strong>
+              . Use inline styles for best results. The <code>{'{{ QRCode }}'}</code> placeholder
+              inserts a data-URL you can use in an <code>&lt;img&gt;</code> tag.
             </div>
           </div>
         </div>

@@ -101,7 +101,9 @@ export default function GearLanding() {
     return <div className="text-center py-20 text-red-600">{error || 'Gear not found'}</div>;
   }
 
-  const isCurrentUserLoan = gear.loans?.some((l) => l.isCurrentUserLoan || l.userId === profile?.id);
+  const isCurrentUserLoan = gear.loans?.some(
+    (l) => l.isCurrentUserLoan || l.userId === profile?.id,
+  );
 
   return (
     <div className="max-w-lg mx-auto mt-8">
@@ -109,16 +111,12 @@ export default function GearLanding() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold">{gear.name}</h1>
-            {gear.category && (
-              <span className="text-sm text-gray-500">{gear.category}</span>
-            )}
+            {gear.category && <span className="text-sm text-gray-500">{gear.category}</span>}
           </div>
           <GearStatusBadge status={gear.loanStatus} />
         </div>
 
-        {gear.description && (
-          <p className="text-gray-600 mb-4">{gear.description}</p>
-        )}
+        {gear.description && <p className="text-gray-600 mb-4">{gear.description}</p>}
 
         {gear.serialNumber && (
           <p className="text-sm text-gray-400 mb-4">Serial: {gear.serialNumber}</p>
@@ -126,17 +124,11 @@ export default function GearLanding() {
 
         {gear.qrCodeUrl && (
           <div className="mb-4 text-center">
-            <img
-              src={gear.qrCodeUrl}
-              alt="QR Code"
-              className="inline-block w-40 h-40"
-            />
+            <img src={gear.qrCodeUrl} alt="QR Code" className="inline-block w-40 h-40" />
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>
-        )}
+        {error && <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
         {message && (
           <div className="bg-green-50 text-green-700 p-3 rounded mb-4 text-sm">{message}</div>
         )}
@@ -177,9 +169,7 @@ export default function GearLanding() {
           )}
 
           {gear.loanStatus === 'CHECKED_OUT' && !isCurrentUserLoan && (
-            <p className="text-center text-gray-500 text-sm">
-              This gear is currently checked out.
-            </p>
+            <p className="text-center text-gray-500 text-sm">This gear is currently checked out.</p>
           )}
 
           {!isAuthenticated && gear.loanStatus === 'AVAILABLE' && (

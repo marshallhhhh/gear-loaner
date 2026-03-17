@@ -20,7 +20,7 @@ app.use(
   cors({
     origin: process.env.FRONTEND_URL || (isProd ? false : 'http://localhost:5173'),
     credentials: true,
-  })
+  }),
 );
 
 // Trust proxy for correct req.ip behind reverse proxies (production only)
@@ -35,7 +35,7 @@ app.use(
     max: 200,
     standardHeaders: true,
     legacyHeaders: false,
-  })
+  }),
 );
 
 // Body parsing

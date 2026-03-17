@@ -27,7 +27,10 @@ export async function listUsers(req, res, next) {
       prisma.profile.count({ where }),
     ]);
 
-    res.json({ data: users, pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } });
+    res.json({
+      data: users,
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    });
   } catch (err) {
     next(err);
   }

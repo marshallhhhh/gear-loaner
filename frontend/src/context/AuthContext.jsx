@@ -18,16 +18,16 @@ export function AuthProvider({ children }) {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        if (session) fetchProfile(session.access_token);
-        else {
-          setProfile(null);
-          setLoading(false);
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) fetchProfile(session.access_token);
+      else {
+        setProfile(null);
+        setLoading(false);
       }
-    );
+    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -69,21 +69,26 @@ export function AuthProvider({ children }) {
   }, []);
 
   const getToken = useCallback(async () => {
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    const {
+      data: { session: currentSession },
+    } = await supabase.auth.getSession();
     return currentSession?.access_token || null;
   }, []);
 
-  const value = useMemo(() => ({
-    session,
-    profile,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    getToken,
-    isAdmin: profile?.role === 'ADMIN',
-    isAuthenticated: !!session,
-  }), [session, profile, loading, signUp, signIn, signOut, getToken]);
+  const value = useMemo(
+    () => ({
+      session,
+      profile,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      getToken,
+      isAdmin: profile?.role === 'ADMIN',
+      isAuthenticated: !!session,
+    }),
+    [session, profile, loading, signUp, signIn, signOut, getToken],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

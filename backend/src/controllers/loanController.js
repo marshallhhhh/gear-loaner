@@ -28,7 +28,7 @@ async function resolveGearForUpdate(tx, gearItemId) {
   const value = isShortId ? gearItemId.toUpperCase() : gearItemId;
 
   const rows = await tx.$queryRaw(
-    Prisma.sql`SELECT * FROM "Gear" WHERE ${Prisma.raw(column)} = ${value} FOR UPDATE`
+    Prisma.sql`SELECT * FROM "Gear" WHERE ${Prisma.raw(column)} = ${value} FOR UPDATE`,
   );
   return rows[0] || null;
 }
@@ -74,7 +74,10 @@ export async function listLoans(req, res, next) {
       ...l,
       gearItem: { ...l.gearItem, category: categoryName(l.gearItem.category) },
     }));
-    res.json({ data, pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } });
+    res.json({
+      data,
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    });
   } catch (err) {
     next(err);
   }
@@ -85,7 +88,9 @@ export async function getMyLoans(req, res, next) {
     const loans = await prisma.loan.findMany({
       where: { userId: req.profile.id },
       include: {
-        gearItem: { select: { id: true, name: true, category: { select: { name: true } }, qrCodeUrl: true } },
+        gearItem: {
+          select: { id: true, name: true, category: { select: { name: true } }, qrCodeUrl: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -105,7 +110,9 @@ export async function checkout(req, res, next) {
 
     // Check for overdue loans (outside transaction — read-only check)
     if (await hasOverdueLoans(req.profile.id)) {
-      return res.status(403).json({ error: 'You have overdue items. Please return them before checking out new gear.' });
+      return res.status(403).json({
+        error: 'You have overdue items. Please return them before checking out new gear.',
+      });
     }
 
     // Resolve gear ID (shortId → UUID) outside transaction for early 404
@@ -173,7 +180,9 @@ export async function checkout(req, res, next) {
 
     const loanWithGear = await prisma.loan.findUnique({
       where: { id: loan.id },
-      include: { gearItem: { select: { id: true, name: true, category: { select: { name: true } } } } },
+      include: {
+        gearItem: { select: { id: true, name: true, category: { select: { name: true } } } },
+      },
     });
 
     // Normalize category
@@ -196,7 +205,7 @@ export async function returnGear(req, res, next) {
     const result = await prisma.$transaction(async (tx) => {
       // Lock the loan row to prevent concurrent returns
       const [loan] = await tx.$queryRaw(
-        Prisma.sql`SELECT * FROM "Loan" WHERE "id" = ${loanId} FOR UPDATE`
+        Prisma.sql`SELECT * FROM "Loan" WHERE "id" = ${loanId} FOR UPDATE`,
       );
 
       if (!loan) {
@@ -217,13 +226,15 @@ export async function returnGear(req, res, next) {
         data: {
           status: 'RETURNED',
           returnDate: new Date(),
-          notes: notes ? `${loan.notes ? loan.notes + '\n' : ''}Return: ${notes}${condition ? ` (Condition: ${condition})` : ''}` : loan.notes,
+          notes: notes
+            ? `${loan.notes ? loan.notes + '\n' : ''}Return: ${notes}${condition ? ` (Condition: ${condition})` : ''}`
+            : loan.notes,
         },
       });
 
       // Lock the gear row before updating its status
       await tx.$queryRaw(
-        Prisma.sql`SELECT "id" FROM "Gear" WHERE "id" = ${loan.gearItemId} FOR UPDATE`
+        Prisma.sql`SELECT "id" FROM "Gear" WHERE "id" = ${loan.gearItemId} FOR UPDATE`,
       );
 
       await tx.gear.update({
@@ -299,7 +310,13 @@ export async function overrideLoan(req, res, next) {
       return updated;
     });
 
-    await logAction({ userId: req.profile.id, action: 'OVERRIDE', entity: 'Loan', entityId: loanId, details: data });
+    await logAction({
+      userId: req.profile.id,
+      action: 'OVERRIDE',
+      entity: 'Loan',
+      entityId: loanId,
+      details: data,
+    });
     res.json(loan);
   } catch (err) {
     next(err);

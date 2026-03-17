@@ -66,7 +66,10 @@ export default function MiniMap({ location, theme = 'positron' }) {
   const themeInfo = TILE_THEMES[theme] || TILE_THEMES.positron;
 
   return (
-    <div className="mt-2 rounded-lg overflow-hidden border border-gray-200 shadow-sm" style={{ height: 180 }}>
+    <div
+      className="mt-2 rounded-lg overflow-hidden border border-gray-200 shadow-sm"
+      style={{ height: 180 }}
+    >
       <MapContainer
         center={[lat, lng]}
         zoom={14}

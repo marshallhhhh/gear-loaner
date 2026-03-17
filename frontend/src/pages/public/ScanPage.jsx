@@ -23,10 +23,7 @@ export default function ScanPage() {
       {error && (
         <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm text-center">
           {error}
-          <button
-            onClick={() => setError('')}
-            className="ml-2 underline text-red-800"
-          >
+          <button onClick={() => setError('')} className="ml-2 underline text-red-800">
             Try Again
           </button>
         </div>

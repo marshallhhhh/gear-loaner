@@ -95,7 +95,7 @@ describe('loanService - hasOverdueLoans', () => {
         where: expect.objectContaining({
           userId: 'user-abc-123',
         }),
-      })
+      }),
     );
   });
 
@@ -187,7 +187,7 @@ describe('loanService - getOverdueLoans', () => {
         where: expect.objectContaining({
           status: 'ACTIVE',
         }),
-      })
+      }),
     );
   });
 
@@ -210,7 +210,7 @@ describe('loanService - getOverdueLoans', () => {
         include: expect.objectContaining({
           user: true,
         }),
-      })
+      }),
     );
   });
 
@@ -224,7 +224,7 @@ describe('loanService - getOverdueLoans', () => {
         include: expect.objectContaining({
           gearItem: true,
         }),
-      })
+      }),
     );
   });
 

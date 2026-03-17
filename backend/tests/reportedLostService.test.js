@@ -23,11 +23,7 @@ describe('getActiveReportedLostGearIds', () => {
   });
 
   it('returns set of gear IDs for reported lost items', async () => {
-    const mockData = [
-      { gearItemId: 'gear-1' },
-      { gearItemId: 'gear-2' },
-      { gearItemId: 'gear-3' },
-    ];
+    const mockData = [{ gearItemId: 'gear-1' }, { gearItemId: 'gear-2' }, { gearItemId: 'gear-3' }];
     vi.mocked(prisma.$queryRaw).mockResolvedValue(mockData);
 
     const result = await getActiveReportedLostGearIds();
@@ -37,9 +33,7 @@ describe('getActiveReportedLostGearIds', () => {
   });
 
   it('excludes items where most recent action is not REPORT_LOST', async () => {
-    const mockData = [
-      { gearItemId: 'gear-1' },
-    ];
+    const mockData = [{ gearItemId: 'gear-1' }];
     vi.mocked(prisma.$queryRaw).mockResolvedValue(mockData);
 
     const result = await getActiveReportedLostGearIds();
@@ -48,11 +42,7 @@ describe('getActiveReportedLostGearIds', () => {
   });
 
   it('handles duplicate gear IDs', async () => {
-    const mockData = [
-      { gearItemId: 'gear-1' },
-      { gearItemId: 'gear-1' },
-      { gearItemId: 'gear-2' },
-    ];
+    const mockData = [{ gearItemId: 'gear-1' }, { gearItemId: 'gear-1' }, { gearItemId: 'gear-2' }];
     vi.mocked(prisma.$queryRaw).mockResolvedValue(mockData);
 
     const result = await getActiveReportedLostGearIds();
@@ -94,9 +84,7 @@ describe('getActiveReportedLostGearIds', () => {
   });
 
   it('returns a Set (not array)', async () => {
-    vi.mocked(prisma.$queryRaw).mockResolvedValue([
-      { gearItemId: 'gear-1' },
-    ]);
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([{ gearItemId: 'gear-1' }]);
 
     const result = await getActiveReportedLostGearIds();
 
@@ -134,11 +122,7 @@ describe('getActiveReportedLostGearIds', () => {
   });
 
   it('handles null gearItemId gracefully', async () => {
-    const mockData = [
-      { gearItemId: 'gear-1' },
-      { gearItemId: null },
-      { gearItemId: 'gear-2' },
-    ];
+    const mockData = [{ gearItemId: 'gear-1' }, { gearItemId: null }, { gearItemId: 'gear-2' }];
     vi.mocked(prisma.$queryRaw).mockResolvedValue(mockData);
 
     const result = await getActiveReportedLostGearIds();
@@ -149,9 +133,7 @@ describe('getActiveReportedLostGearIds', () => {
   });
 
   it('maps gearItemId from query results correctly', async () => {
-    const mockData = [
-      { gearItemId: 'uuid-with-dashes-123' },
-    ];
+    const mockData = [{ gearItemId: 'uuid-with-dashes-123' }];
     vi.mocked(prisma.$queryRaw).mockResolvedValue(mockData);
 
     const result = await getActiveReportedLostGearIds();

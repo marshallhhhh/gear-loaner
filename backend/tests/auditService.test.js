@@ -214,7 +214,7 @@ describe('logAction', () => {
         entity: 'Loan',
         entityId: 'loan-1',
         details: null,
-      })
+      }),
     ).rejects.toThrow('Database error');
   });
 

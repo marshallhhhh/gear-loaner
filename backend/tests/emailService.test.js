@@ -20,7 +20,7 @@ describe('emailService', () => {
   beforeEach(() => {
     originalEnv = { ...process.env };
     vi.clearAllMocks();
-    
+
     // Reset the module's cached transporter
     nodemailer.createTransport.mockReturnValue({
       sendMail: mockSendMail,
@@ -34,7 +34,7 @@ describe('emailService', () => {
   describe('transporter configuration', () => {
     it('logs warning when SMTP_HOST not configured', async () => {
       delete process.env.SMTP_HOST;
-      
+
       const { sendCheckoutConfirmation } = await import('../src/services/emailService.js');
       await sendCheckoutConfirmation({
         email: 'test@example.com',
@@ -43,7 +43,7 @@ describe('emailService', () => {
       });
 
       expect(logger.warn).toHaveBeenCalledWith(
-        'SMTP not configured — emails will be logged to console'
+        'SMTP not configured — emails will be logged to console',
       );
     });
 
@@ -69,7 +69,7 @@ describe('emailService', () => {
             user: 'user@example.com',
             pass: 'password',
           },
-        })
+        }),
       );
     });
   });
@@ -98,7 +98,7 @@ describe('emailService', () => {
           to: 'user@example.com',
           subject: expect.stringContaining('Dynamic Rope'),
           html: expect.stringContaining('Checkout Confirmation'),
-        })
+        }),
       );
     });
 
@@ -114,7 +114,7 @@ describe('emailService', () => {
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           subject: expect.stringContaining('Carabiner 50mm'),
-        })
+        }),
       );
     });
 
@@ -131,7 +131,7 @@ describe('emailService', () => {
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining('4/1/2026'),
-        })
+        }),
       );
     });
 
@@ -147,7 +147,7 @@ describe('emailService', () => {
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.not.stringContaining('<script>'),
-        })
+        }),
       );
     });
 
@@ -163,7 +163,7 @@ describe('emailService', () => {
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           from: 'noreply@example.com',
-        })
+        }),
       );
     });
 
@@ -180,7 +180,7 @@ describe('emailService', () => {
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           from: 'noreply@tasuniclimbing.club',
-        })
+        }),
       );
     });
   });
@@ -206,7 +206,7 @@ describe('emailService', () => {
           to: 'user@example.com',
           subject: expect.stringContaining('Rope'),
           html: expect.stringContaining('Return Confirmation'),
-        })
+        }),
       );
     });
 
@@ -221,7 +221,7 @@ describe('emailService', () => {
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.not.stringContaining('<img'),
-        })
+        }),
       );
     });
   });
@@ -249,7 +249,7 @@ describe('emailService', () => {
           to: 'user@example.com',
           subject: expect.stringContaining('Overdue'),
           html: expect.stringContaining('Overdue Notice'),
-        })
+        }),
       );
     });
 
@@ -265,7 +265,7 @@ describe('emailService', () => {
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining('Harness XL'),
-        })
+        }),
       );
     });
 
@@ -282,7 +282,7 @@ describe('emailService', () => {
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining('3/15/2026'),
-        })
+        }),
       );
     });
 
@@ -298,9 +298,8 @@ describe('emailService', () => {
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining('&amp;'),
-        })
+        }),
       );
     });
   });
-
 });

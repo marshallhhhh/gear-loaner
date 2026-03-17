@@ -60,7 +60,10 @@ export async function listGear(req, res, next) {
       category: categoryName(g.category),
       reportedLost: activeReportedLostIds.has(g.id),
     }));
-    res.json({ data, pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } });
+    res.json({
+      data,
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    });
   } catch (err) {
     next(err);
   }
@@ -70,9 +73,7 @@ export async function getGear(req, res, next) {
   try {
     const param = req.params.id;
     // Resolve by shortId (AAA-XXX) or fall back to UUID
-    const where = SHORT_ID_RE.test(param)
-      ? { shortId: param.toUpperCase() }
-      : { id: param };
+    const where = SHORT_ID_RE.test(param) ? { shortId: param.toUpperCase() } : { id: param };
 
     const gear = await prisma.gear.findUnique({
       where,
@@ -135,9 +136,8 @@ export async function createGear(req, res, next) {
       description: description || null,
       tags,
       // treat empty string or whitespace-only as null so DB stores NULL instead of ""
-      serialNumber: typeof serialNumber === 'string' && serialNumber.trim() !== ''
-        ? serialNumber.trim()
-        : null,
+      serialNumber:
+        typeof serialNumber === 'string' && serialNumber.trim() !== '' ? serialNumber.trim() : null,
       defaultLoanDays,
       shortId,
     };
@@ -186,7 +186,8 @@ export async function createGear(req, res, next) {
 export async function updateGear(req, res, next) {
   try {
     // shortId is intentionally excluded — it is server-generated and immutable
-    const { name, description, category, tags, serialNumber, defaultLoanDays, loanStatus } = req.body;
+    const { name, description, category, tags, serialNumber, defaultLoanDays, loanStatus } =
+      req.body;
 
     // Fetch current gear to detect status changes
     const existingGear = await prisma.gear.findUnique({
@@ -200,9 +201,8 @@ export async function updateGear(req, res, next) {
     if (tags !== undefined) data.tags = tags;
     if (serialNumber !== undefined) {
       // convert empty string or whitespace-only to null; trim non-empty strings
-      data.serialNumber = typeof serialNumber === 'string' && serialNumber.trim() !== ''
-        ? serialNumber.trim()
-        : null;
+      data.serialNumber =
+        typeof serialNumber === 'string' && serialNumber.trim() !== '' ? serialNumber.trim() : null;
     }
     if (defaultLoanDays !== undefined) data.defaultLoanDays = Number(defaultLoanDays);
     if (loanStatus !== undefined) data.loanStatus = loanStatus;
@@ -351,7 +351,10 @@ export async function reportLost(req, res, next) {
 
 export async function getCategories(req, res, next) {
   try {
-    const cats = await prisma.category.findMany({ select: { name: true }, orderBy: { name: 'asc' } });
+    const cats = await prisma.category.findMany({
+      select: { name: true },
+      orderBy: { name: 'asc' },
+    });
     res.json(cats.map((c) => c.name));
   } catch (err) {
     next(err);

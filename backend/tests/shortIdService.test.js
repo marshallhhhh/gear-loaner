@@ -71,20 +71,25 @@ describe('generateShortId', () => {
     });
 
     it('uses different prefix if category is available', async () => {
-      vi.mocked(prisma.gear.findMany).mockResolvedValue([
-        { shortId: 'HEL-001' },
-      ]);
+      vi.mocked(prisma.gear.findMany).mockResolvedValue([{ shortId: 'HEL-001' }]);
       const id = await generateShortId('Helmet', 'Carabiners');
       expect(id).toMatch(/^CAR-\d{3}$/);
     });
 
     it('falls back to random prefix when first two prefixes are exhausted', async () => {
       // Create 1000 existing IDs to simulate exhausted slots
-      const existingIds = Array.from({ length: 999 }, (_, i) => `DYN-${String(i + 1).padStart(3, '0')}`);
-      existingIds.push(...Array.from({ length: 999 }, (_, i) => `ROB-${String(i + 1).padStart(3, '0')}`));
-      
-      vi.mocked(prisma.gear.findMany).mockResolvedValue(existingIds.map(shortId => ({ shortId })));
-      
+      const existingIds = Array.from(
+        { length: 999 },
+        (_, i) => `DYN-${String(i + 1).padStart(3, '0')}`,
+      );
+      existingIds.push(
+        ...Array.from({ length: 999 }, (_, i) => `ROB-${String(i + 1).padStart(3, '0')}`),
+      );
+
+      vi.mocked(prisma.gear.findMany).mockResolvedValue(
+        existingIds.map((shortId) => ({ shortId })),
+      );
+
       const id = await generateShortId('Dynamic Rope', 'Robe');
       expect(id).toMatch(/^[A-Z]{3}-\d{3}$/);
       expect(!existingIds.includes(id)).toBe(true);
@@ -113,9 +118,7 @@ describe('generateShortId', () => {
     });
 
     it('case-insensitive name matching', async () => {
-      prisma.gear.findMany.mockResolvedValue([
-        { shortId: 'HEL-001' },
-      ]);
+      prisma.gear.findMany.mockResolvedValue([{ shortId: 'HEL-001' }]);
       const id = await generateShortId('HELMET', null);
       expect(id).toBe('HEL-002');
     });
@@ -142,10 +145,13 @@ describe('generateShortId', () => {
     it('does not throw when random generation can still find unique ID', async () => {
       // The function has a 100-attempt limit, so it's hard to truly exhaust
       // Instead, we test that it returns a valid ID even when provided IDs contain many entries
-      const manyIds = Array.from({ length: 500 }, (_, i) => `ABC-${String(i + 1).padStart(3, '0')}`);
-      
-      vi.mocked(prisma.gear.findMany).mockResolvedValue(manyIds.map(shortId => ({ shortId })));
-      
+      const manyIds = Array.from(
+        { length: 500 },
+        (_, i) => `ABC-${String(i + 1).padStart(3, '0')}`,
+      );
+
+      vi.mocked(prisma.gear.findMany).mockResolvedValue(manyIds.map((shortId) => ({ shortId })));
+
       const id = await generateShortId('Test', 'Name', manyIds);
       expect(id).toMatch(/^[A-Z]{3}-\d{3}$/);
       expect(!manyIds.includes(id)).toBe(true);

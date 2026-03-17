@@ -64,79 +64,79 @@ export default function App() {
             <Route path="/gear/:id" element={<GearLanding />} />
             <Route path="/gear/:id/report-lost" element={<ReportLost />} />
 
-        {/* Member (authenticated) */}
-        <Route
-          path="/scan"
-          element={
-            <ProtectedRoute>
-              <ScanPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/my-loans"
-          element={
-            <ProtectedRoute>
-              <MyLoans />
-            </ProtectedRoute>
-          }
-        />
+            {/* Member (authenticated) */}
+            <Route
+              path="/scan"
+              element={
+                <ProtectedRoute>
+                  <ScanPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-loans"
+              element={
+                <ProtectedRoute>
+                  <MyLoans />
+                </ProtectedRoute>
+              }
+            />
 
-        {/* Admin */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute adminOnly>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/gear"
-          element={
-            <ProtectedRoute adminOnly>
-              <GearManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/gear/:id"
-          element={
-            <ProtectedRoute adminOnly>
-              <GearDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/loans"
-          element={
-            <ProtectedRoute adminOnly>
-              <LoanHistory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/users"
-          element={
-            <ProtectedRoute adminOnly>
-              <UserManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/print-tags"
-          element={
-            <ProtectedRoute adminOnly>
-              <PrintTags />
-            </ProtectedRoute>
-          }
-        />
+            {/* Admin */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute adminOnly>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/gear"
+              element={
+                <ProtectedRoute adminOnly>
+                  <GearManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/gear/:id"
+              element={
+                <ProtectedRoute adminOnly>
+                  <GearDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/loans"
+              element={
+                <ProtectedRoute adminOnly>
+                  <LoanHistory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute adminOnly>
+                  <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/print-tags"
+              element={
+                <ProtectedRoute adminOnly>
+                  <PrintTags />
+                </ProtectedRoute>
+              }
+            />
 
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      </Suspense>
-    </Layout>
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </Layout>
     </ErrorBoundary>
   );
 }

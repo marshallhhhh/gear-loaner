@@ -18,27 +18,30 @@ export default function usePagination(endpoint, { pageSize = 50, extraParams = {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchPage = useCallback(async (page = 1) => {
-    try {
-      const params = new URLSearchParams();
-      params.set('page', page);
-      params.set('pageSize', pageSize);
-      for (const [key, value] of Object.entries(extraParams)) {
-        if (value !== undefined && value !== null && value !== '') {
-          params.set(key, value);
+  const fetchPage = useCallback(
+    async (page = 1) => {
+      try {
+        const params = new URLSearchParams();
+        params.set('page', page);
+        params.set('pageSize', pageSize);
+        for (const [key, value] of Object.entries(extraParams)) {
+          if (value !== undefined && value !== null && value !== '') {
+            params.set(key, value);
+          }
         }
+        const result = await api(`${endpoint}?${params}`, { token: await getToken() });
+        setData(result.data);
+        setPagination(result.pagination);
+        setError('');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-      const result = await api(`${endpoint}?${params}`, { token: await getToken() });
-      setData(result.data);
-      setPagination(result.pagination);
-      setError('');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endpoint, pageSize, getToken, JSON.stringify(extraParams)]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [endpoint, pageSize, getToken, JSON.stringify(extraParams)],
+  );
 
   const refetchCurrentPage = useCallback(() => {
     fetchPage(pagination.page);

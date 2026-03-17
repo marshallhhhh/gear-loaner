@@ -37,8 +37,14 @@ function mockReqResNext(overrides = {}) {
   const res = {
     statusCode: 200,
     _json: null,
-    status(code) { this.statusCode = code; return this; },
-    json(data) { this._json = data; return this; },
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(data) {
+      this._json = data;
+      return this;
+    },
   };
   const next = vi.fn();
   return { req, res, next };
@@ -76,47 +82,47 @@ describe('authenticate middleware', () => {
   it('mocks profile database operations', async () => {
     const profile = { id: 'test', email: 'test@example.com', fullName: 'Test User' };
     vi.mocked(prisma.profile.findUnique).mockResolvedValue(profile);
-    
+
     const result = await prisma.profile.findUnique({ where: { id: 'test' } });
-    
+
     expect(result).toEqual(profile);
     expect(vi.mocked(prisma.profile.findUnique)).toHaveBeenCalledWith({ where: { id: 'test' } });
   });
 
   it('mocks JWT verification', async () => {
     vi.mocked(jwtVerify).mockResolvedValue({ payload: mockPayload });
-    
+
     const result = await jwtVerify('token', {}, {});
-    
+
     expect(result.payload).toEqual(mockPayload);
   });
 
   it('creates new profiles', async () => {
     const newProfile = { id: 'new-user', email: 'new@example.com', fullName: 'New User' };
     vi.mocked(prisma.profile.create).mockResolvedValue(newProfile);
-    
+
     const result = await prisma.profile.create({ data: newProfile });
-    
+
     expect(result).toEqual(newProfile);
     expect(vi.mocked(prisma.profile.create)).toHaveBeenCalledWith({ data: newProfile });
   });
 
   it('logs information', () => {
     vi.mocked(logger.info)('Test message');
-    
+
     expect(vi.mocked(logger.info)).toHaveBeenCalledWith('Test message');
   });
 
   it('logs warnings', () => {
     vi.mocked(logger.warn)('Warning message');
-    
+
     expect(vi.mocked(logger.warn)).toHaveBeenCalledWith('Warning message');
   });
 
   it('logs errors', () => {
     const error = new Error('Test error');
     vi.mocked(logger.error)({ err: error }, 'Error occurred');
-    
+
     expect(vi.mocked(logger.error)).toHaveBeenCalled();
   });
 });
@@ -143,7 +149,7 @@ describe('optionalAuth middleware', () => {
 
   it('allows requests without authentication', () => {
     const { req, res, next } = mockReqResNext();
-    
+
     expect(req.headers.authorization).toBeNull();
   });
 
@@ -151,7 +157,7 @@ describe('optionalAuth middleware', () => {
     const { req } = mockReqResNext({
       headers: { authorization: 'Bearer token123' },
     });
-    
+
     const token = req.headers.authorization.split(' ')[1];
     expect(token).toBe('token123');
   });
@@ -160,21 +166,21 @@ describe('optionalAuth middleware', () => {
     const { req } = mockReqResNext({
       headers: { authorization: 'Basic xyz' },
     });
-    
+
     const isBearer = req.headers.authorization?.startsWith('Bearer ');
     expect(isBearer).toBe(false);
   });
 
   it('can attach user to request', () => {
     const { req, res, next } = mockReqResNext();
-    
+
     req.user = mockPayload;
     expect(req.user).toEqual(mockPayload);
   });
 
   it('can attach profile to request', () => {
     const { req, res, next } = mockReqResNext();
-    
+
     req.profile = mockProfile;
     expect(req.profile).toEqual(mockProfile);
   });
