@@ -6,7 +6,7 @@ import GearStatusBadge from '../../components/GearStatusBadge.jsx';
 
 export default function GearLanding() {
   const { id } = useParams();
-  const { isAuthenticated, profile, getToken } = useAuth();
+  const { isAuthenticated, profile, getToken, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [gear, setGear] = useState(null);
@@ -18,8 +18,10 @@ export default function GearLanding() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    // Wait until auth has resolved so the token (if any) is available
+    if (authLoading) return;
     fetchGear();
-  }, [id]);
+  }, [id, authLoading]);
 
   async function fetchGear() {
     try {
@@ -82,7 +84,7 @@ export default function GearLanding() {
       const location = await getLocation();
       const token = getToken();
       // Find the active loan for this gear belonging to the current user
-      const activeLoan = gear.loans?.find((l) => l.userId === profile.id);
+      const activeLoan = gear.loans?.find((l) => l.isCurrentUserLoan || l.userId === profile.id);
       if (!activeLoan) {
         setError('No active loan found for this gear');
         return;
@@ -110,7 +112,7 @@ export default function GearLanding() {
     return <div className="text-center py-20 text-red-600">{error || 'Gear not found'}</div>;
   }
 
-  const isCurrentUserLoan = gear.loans?.some((l) => l.userId === profile?.id);
+  const isCurrentUserLoan = gear.loans?.some((l) => l.isCurrentUserLoan || l.userId === profile?.id);
 
   return (
     <div className="max-w-lg mx-auto mt-8">

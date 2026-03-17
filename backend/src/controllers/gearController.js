@@ -55,12 +55,14 @@ export async function getGear(req, res, next) {
       return res.status(404).json({ error: 'Gear not found' });
     }
 
-    // Non-admin users should not see who currently has the gear
+    // Non-admin users should not see who currently has the gear,
+    // but the borrower themselves needs to know their own loan is active.
     if (!req.profile || req.profile.role !== 'ADMIN') {
-      gear.loans = gear.loans.map(({ id, dueDate, checkoutDate }) => ({
+      gear.loans = gear.loans.map(({ id, userId, dueDate, checkoutDate }) => ({
         id,
         dueDate,
         checkoutDate,
+        isCurrentUserLoan: req.profile ? userId === req.profile.id : false,
       }));
     }
 
