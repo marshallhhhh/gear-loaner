@@ -12,6 +12,7 @@ import GearManagement from './pages/admin/GearManagement.jsx';
 import GearDetail from './pages/admin/GearDetail.jsx';
 import LoanHistory from './pages/admin/LoanHistory.jsx';
 import UserManagement from './pages/admin/UserManagement.jsx';
+import PrintTags from './pages/admin/PrintTags.jsx';
 
 export default function App() {
   return (
@@ -80,6 +81,14 @@ export default function App() {
           element={
             <ProtectedRoute adminOnly>
               <UserManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/print-tags"
+          element={
+            <ProtectedRoute adminOnly>
+              <PrintTags />
             </ProtectedRoute>
           }
         />

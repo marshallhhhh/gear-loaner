@@ -14,6 +14,7 @@ export default function GearManagement() {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const statusFilter = searchParams.get('status') || '';
 
   // client-side filtering — no extra API calls when filter/search changes
@@ -120,10 +121,34 @@ export default function GearManagement() {
     if (!confirm('Delete this gear item? This cannot be undone.')) return;
     try {
       await api(`/gear/${id}`, { method: 'DELETE', token: getToken() });
+      setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
       fetchGear();
     } catch (err) {
       alert(err.message);
     }
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === gear.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(gear.map((g) => g.id)));
+    }
+  }
+
+  function handlePrintSelected() {
+    const items = allGear.filter((g) => selectedIds.has(g.id));
+    if (items.length === 0) return;
+    navigate('/admin/print-tags', { state: { gearItems: items } });
   }
 
   if (loading) {
@@ -134,20 +159,30 @@ export default function GearManagement() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Gear Inventory</h1>
-        <button
-          onClick={() => {
-            setForm(emptyForm);
-            setEditingId(null);
-            setEditingShortId(null);
-            // reset the create-new-category UI when opening the form
-            setShowNewCategory(false);
-            setNewCategory('');
-            setShowForm(!showForm);
-          }}
-          className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-        >
-          {showForm ? 'Cancel' : '+ Add Gear'}
-        </button>
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handlePrintSelected}
+              className="border border-primary-600 text-primary-600 hover:bg-primary-50 px-4 py-2 rounded-lg text-sm font-medium"
+            >
+              🏷️ Print {selectedIds.size} Tag{selectedIds.size !== 1 ? 's' : ''}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setForm(emptyForm);
+              setEditingId(null);
+              setEditingShortId(null);
+              // reset the create-new-category UI when opening the form
+              setShowNewCategory(false);
+              setNewCategory('');
+              setShowForm(!showForm);
+            }}
+            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          >
+            {showForm ? 'Cancel' : '+ Add Gear'}
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter */}
@@ -296,6 +331,15 @@ export default function GearManagement() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
+              <th className="px-4 py-3 w-8">
+                <input
+                  type="checkbox"
+                  checked={gear.length > 0 && selectedIds.size === gear.length}
+                  onChange={toggleSelectAll}
+                  className="rounded"
+                  title="Select all"
+                />
+              </th>
               <th className="text-left px-4 py-3 font-medium">Name</th>
               <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Category</th>
               <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Gear ID</th>
@@ -310,6 +354,14 @@ export default function GearManagement() {
                 className="hover:bg-gray-50 cursor-pointer"
                 onClick={() => navigate(`/admin/gear/${item.id}`)}
               >
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(item.id)}
+                    onChange={() => toggleSelect(item.id)}
+                    className="rounded"
+                  />
+                </td>
                 <td className="px-4 py-3 font-medium text-primary-600 hover:underline">{item.name}</td>
                 <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
                   {item.category || '—'}
@@ -338,7 +390,7 @@ export default function GearManagement() {
             ))}
             {gear.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-center py-8 text-gray-400">
+                <td colSpan={6} className="text-center py-8 text-gray-400">
                   No gear items found.
                 </td>
               </tr>

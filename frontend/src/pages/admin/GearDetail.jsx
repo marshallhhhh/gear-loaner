@@ -141,12 +141,24 @@ export default function GearDetail() {
         <div className="flex items-center gap-3">
           <GearStatusBadge status={gear.loanStatus} />
           {!editing && (
-            <button
-              onClick={() => setEditing(true)}
-              className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-            >
-              ✏️ Edit
-            </button>
+            <>
+              <button
+                onClick={() =>
+                  navigate('/admin/print-tags', {
+                    state: { gearItems: [gear] },
+                  })
+                }
+                className="border border-primary-600 text-primary-600 hover:bg-primary-50 px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                🏷️ Print Tag
+              </button>
+              <button
+                onClick={() => setEditing(true)}
+                className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                ✏️ Edit
+              </button>
+            </>
           )}
         </div>
       </div>
