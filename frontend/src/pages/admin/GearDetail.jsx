@@ -27,9 +27,25 @@ export default function GearDetail() {
     loanStatus: 'AVAILABLE',
   });
 
+  const [categories, setCategories] = useState([]);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+
+  const [lostReportEntry, setLostReportEntry] = useState(null);
+
   useEffect(() => {
     fetchDetail();
+    fetchCategories();
   }, [id]);
+
+  async function fetchCategories() {
+    try {
+      const data = await api('/gear/categories', { token: getToken() });
+      setCategories(data);
+    } catch (err) {
+      console.error('Failed to load categories:', err.message);
+    }
+  }
 
   async function fetchDetail() {
     try {
@@ -76,6 +92,8 @@ export default function GearDetail() {
 
       await api(`/gear/${id}`, { method: 'PUT', token: getToken(), body });
       setEditing(false);
+      setShowNewCategory(false);
+      setNewCategory('');
       fetchDetail();
     } catch (err) {
       setError(err.message);
@@ -151,11 +169,45 @@ export default function GearDetail() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Category</label>
-              <input
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+              <select
+                value={showNewCategory ? '__create_new__' : (form.category || '')}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '__create_new__') {
+                    setShowNewCategory(true);
+                    setNewCategory('');
+                    setForm({ ...form, category: '' });
+                  } else {
+                    setShowNewCategory(false);
+                    setNewCategory('');
+                    setForm({ ...form, category: val });
+                  }
+                }}
                 className="w-full border rounded-lg px-3 py-2"
-              />
+              >
+                <option value="">—</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+                {form.category && !categories.includes(form.category) && (
+                  <option value={form.category}>{form.category}</option>
+                )}
+                <option value="__create_new__">Create new…</option>
+              </select>
+
+              {showNewCategory && (
+                <div className="mt-2">
+                  <input
+                    value={newCategory}
+                    onChange={(e) => {
+                      setNewCategory(e.target.value);
+                      setForm({ ...form, category: e.target.value });
+                    }}
+                    placeholder="New category name"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Serial Number</label>
@@ -228,7 +280,11 @@ export default function GearDetail() {
             </button>
             <button
               type="button"
-              onClick={() => setEditing(false)}
+              onClick={() => {
+                setEditing(false);
+                setShowNewCategory(false);
+                setNewCategory('');
+              }}
               className="border border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-50"
             >
               Cancel
@@ -356,8 +412,7 @@ export default function GearDetail() {
       <div className="bg-white rounded-xl shadow overflow-x-auto">
         <div className="px-6 py-4 border-b">
           <h2 className="text-lg font-semibold">Activity History</h2>
-        </div>
-        <table className="w-full text-sm">
+        </div>        <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="text-left px-4 py-3 font-medium">Time</th>
@@ -368,7 +423,11 @@ export default function GearDetail() {
           </thead>
           <tbody className="divide-y">
             {history.map((entry, i) => (
-              <tr key={i} className="hover:bg-gray-50">
+              <tr
+                key={i}
+                className={`hover:bg-gray-50 ${entry.action === 'Reported Lost' ? 'cursor-pointer' : ''}`}
+                onClick={() => entry.action === 'Reported Lost' && setLostReportEntry(entry)}
+              >
                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                   {new Date(entry.time).toLocaleString()}
                 </td>
@@ -376,6 +435,9 @@ export default function GearDetail() {
                 <td className="px-4 py-3 text-gray-500 font-mono text-xs">{entry.location}</td>
                 <td className="px-4 py-3">
                   <ActionBadge action={entry.action} />
+                  {entry.action === 'Reported Lost' && (
+                    <span className="ml-2 text-xs text-gray-400 hover:text-gray-600">View details →</span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -389,6 +451,78 @@ export default function GearDetail() {
           </tbody>
         </table>
       </div>
+
+      {/* Lost Report Modal */}
+      {lostReportEntry && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setLostReportEntry(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                  Reported Lost
+                </span>
+                <span className="text-gray-700">Lost Report Details</span>
+              </h2>
+              <button
+                onClick={() => setLostReportEntry(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <dl className="space-y-3 text-sm">
+              <div>
+                <dt className="text-gray-500">Reported At</dt>
+                <dd className="font-medium mt-0.5">
+                  {new Date(lostReportEntry.time).toLocaleString()}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">Reported By</dt>
+                <dd className="font-medium mt-0.5">{lostReportEntry.user}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">Location (GPS)</dt>
+                <dd className="font-medium font-mono mt-0.5">{lostReportEntry.location}</dd>
+              </div>
+              {lostReportEntry.details?.contactInfo && (
+                <div>
+                  <dt className="text-gray-500">Contact Info</dt>
+                  <dd className="font-medium mt-0.5">{lostReportEntry.details.contactInfo}</dd>
+                </div>
+              )}
+              {lostReportEntry.details?.notes && (
+                <div>
+                  <dt className="text-gray-500">Notes</dt>
+                  <dd className="mt-0.5 text-gray-800 whitespace-pre-wrap">
+                    {lostReportEntry.details.notes}
+                  </dd>
+                </div>
+              )}
+              {!lostReportEntry.details?.contactInfo && !lostReportEntry.details?.notes && (
+                <div className="text-gray-400 italic">No additional details provided.</div>
+              )}
+            </dl>
+
+            <div className="mt-6 text-right">
+              <button
+                onClick={() => setLostReportEntry(null)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

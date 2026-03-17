@@ -192,6 +192,7 @@ export async function getAdminGearDetail(req, res, next) {
         userId: action.userId,
         location: formatLoc(action.latitude, action.longitude),
         action: actionLabels[action.type] || action.type,
+        details: action.details || null,
       });
     }
 
