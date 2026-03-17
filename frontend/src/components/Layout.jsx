@@ -35,6 +35,12 @@ export default function Layout({ children }) {
                     <Link to="/admin/gear" className="hover:text-primary-200">
                       Gear
                     </Link>
+                    <Link to="/admin/users" className="hover:text-primary-200">
+                      Users
+                    </Link>
+                    <Link to="/admin/loans" className="hover:text-primary-200">
+                      All Loans
+                    </Link>
                   </>
                 )}
                 <span className="text-primary-200 text-xs hidden sm:inline">

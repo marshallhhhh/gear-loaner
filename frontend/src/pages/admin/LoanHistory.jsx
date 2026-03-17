@@ -6,24 +6,26 @@ import { api } from '../../config/api.js';
 export default function LoanHistory() {
   const { getToken } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [loans, setLoans] = useState([]);
+  const [allLoans, setAllLoans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState(searchParams.get('status') || '');
+  const filter = searchParams.get('status') || '';
+
+  // client-side filtering — no extra API calls when filter changes
+  const loans = allLoans.filter((loan) => {
+    if (!filter) return true;
+    if (filter === 'OVERDUE') return isOverdue(loan);
+    if (filter === 'ACTIVE') return loan.status === 'ACTIVE' && !isOverdue(loan);
+    return loan.status === filter;
+  });
 
   useEffect(() => {
     fetchLoans();
-  }, [filter]);
+  }, []);
 
   async function fetchLoans() {
     try {
-      // "OVERDUE" is a virtual filter: fetch ACTIVE loans, then keep only overdue ones
-      const apiStatus = filter === 'OVERDUE' ? 'ACTIVE' : filter;
-      const params = apiStatus ? `?status=${apiStatus}` : '';
-      let data = await api(`/loans${params}`, { token: getToken() });
-      if (filter === 'OVERDUE') {
-        data = data.filter((l) => new Date(l.dueDate) < new Date());
-      }
-      setLoans(data);
+      const data = await api('/loans', { token: getToken() });
+      setAllLoans(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -64,7 +66,6 @@ export default function LoanHistory() {
           value={filter}
           onChange={(e) => {
             const val = e.target.value;
-            setFilter(val);
             setSearchParams(val ? { status: val } : {});
           }}
           className="border rounded-lg px-3 py-2 text-sm"

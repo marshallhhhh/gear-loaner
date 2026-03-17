@@ -167,7 +167,7 @@ export default function GearManagement() {
           }}
           className="border rounded-lg px-3 py-2 text-sm"
         >
-          <option value="">All Statuses</option>
+          <option value="">All</option>
           <option value="AVAILABLE">Available</option>
           <option value="CHECKED_OUT">Checked Out</option>
           <option value="LOST">Lost</option>
