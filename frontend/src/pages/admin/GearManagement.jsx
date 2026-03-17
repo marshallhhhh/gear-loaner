@@ -31,7 +31,7 @@ export default function GearManagement() {
 
   const {
     form, setForm, saving, setSaving,
-    showNewCategory, newCategory,
+    showNewCategory, setShowNewCategory, newCategory, setNewCategory,
     populateForm, resetForm, buildBody,
     handleCategoryChange, handleNewCategoryInput,
   } = useGearForm();
@@ -138,12 +138,9 @@ export default function GearManagement() {
           )}
           <button
             onClick={() => {
-              setForm(emptyForm);
+              resetForm();
               setEditingId(null);
               setEditingShortId(null);
-              // reset the create-new-category UI when opening the form
-              setShowNewCategory(false);
-              setNewCategory('');
               setShowForm(!showForm);
             }}
             className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
