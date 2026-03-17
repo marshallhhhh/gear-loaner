@@ -7,8 +7,8 @@ export default function ScanPage() {
   const navigate = useNavigate();
 
   function handleScan(decodedText) {
-    // Extract gear ID from URL like https://tasuniclimbing.club/gear/{id}
-    const match = decodedText.match(/\/gear\/([a-f0-9-]+)/i);
+    // Match /gear/{shortId} (AAA-XXX) or /gear/{uuid}
+    const match = decodedText.match(/\/gear\/([A-Za-z0-9]{3}-[A-Za-z0-9]+|[a-f0-9-]{36})/i);
     if (match) {
       navigate(`/gear/${match[1]}`);
     } else {

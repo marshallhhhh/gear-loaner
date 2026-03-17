@@ -34,7 +34,7 @@ model Profile {
   updatedAt DateTime @updatedAt
 
   loans   Loan[]
-  qrScans QRScan[]
+  actions Action[]
 }
 
 model Gear {
@@ -44,6 +44,7 @@ model Gear {
   category        String?
   tags            String[]   @default([])
   serialNumber    String?    @unique
+  shortId         String?    @unique
   loanStatus      GearStatus @default(AVAILABLE)
   qrCodeUrl       String?
   defaultLoanDays Int        @default(7)
@@ -51,7 +52,7 @@ model Gear {
   updatedAt       DateTime   @updatedAt
 
   loans   Loan[]
-  qrScans QRScan[]
+  actions Action[]
 }
 
 model Loan {
@@ -73,16 +74,23 @@ model Loan {
   @@index([status])
 }
 
-model QRScan {
-  id         String   @id @default(uuid())
+enum ActionType {
+  CHECKOUT
+  RETURN
+  REPORT_LOST
+}
+
+model Action {
+  id         String     @id @default(uuid())
+  type       ActionType
   userId     String?
-  user       Profile? @relation(fields: [userId], references: [id])
+  user       Profile?   @relation(fields: [userId], references: [id])
   gearItemId String
-  gearItem   Gear     @relation(fields: [gearItemId], references: [id])
+  gearItem   Gear       @relation(fields: [gearItemId], references: [id])
   latitude   Float?
   longitude  Float?
-  ipAddress  String?
-  createdAt  DateTime @default(now())
+  details    Json?
+  createdAt  DateTime   @default(now())
 
   @@index([gearItemId])
   @@index([userId])

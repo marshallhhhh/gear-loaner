@@ -12,17 +12,35 @@ export default function ReportLost() {
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  async function getLocation() {
+    try {
+      return await new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          resolve(null);
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          () => resolve(null)
+        );
+      });
+    } catch {
+      return null;
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
+      const location = await getLocation();
       const token = getToken();
       await api(`/gear/${id}/report-lost`, {
         method: 'POST',
         token,
-        body: { contactInfo, notes },
+        body: { contactInfo, notes, ...(location || {}) },
       });
       setSubmitted(true);
     } catch (err) {

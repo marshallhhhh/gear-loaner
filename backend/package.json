@@ -8,7 +8,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "backfill:shortids": "node scripts/backfillShortIds.js"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
@@ -20,7 +21,7 @@
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
     "jose": "^6.0.8",
-    "nodemailer": "^6.9.16",
+    "nodemailer": "^8.0.2",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {

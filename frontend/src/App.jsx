@@ -9,6 +9,7 @@ import ScanPage from './pages/public/ScanPage.jsx';
 import MyLoans from './pages/member/MyLoans.jsx';
 import Dashboard from './pages/admin/Dashboard.jsx';
 import GearManagement from './pages/admin/GearManagement.jsx';
+import GearDetail from './pages/admin/GearDetail.jsx';
 import LoanHistory from './pages/admin/LoanHistory.jsx';
 import UserManagement from './pages/admin/UserManagement.jsx';
 
@@ -55,6 +56,14 @@ export default function App() {
           element={
             <ProtectedRoute adminOnly>
               <GearManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/gear/:id"
+          element={
+            <ProtectedRoute adminOnly>
+              <GearDetail />
             </ProtectedRoute>
           }
         />

@@ -7,7 +7,6 @@ import { errorHandler } from './middleware/errorHandler.js';
 import gearRoutes from './routes/gear.js';
 import loanRoutes from './routes/loans.js';
 import userRoutes from './routes/users.js';
-import qrscanRoutes from './routes/qrscans.js';
 import adminRoutes from './routes/admin.js';
 
 const app = express();
@@ -42,7 +41,6 @@ app.set('trust proxy', 1);
 app.use('/api/gear', gearRoutes);
 app.use('/api/loans', loanRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/qrscans', qrscanRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Health check

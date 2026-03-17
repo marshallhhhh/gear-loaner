@@ -3,6 +3,17 @@ import { hasOverdueLoans, calculateDueDate } from '../services/loanService.js';
 import { sendCheckoutConfirmation, sendReturnConfirmation } from '../services/emailService.js';
 import { logAction } from '../services/auditService.js';
 
+/** Matches the AAA-XXX short ID format */
+const SHORT_ID_RE = /^[A-Za-z]{3}-\d{3}$/;
+
+/** Resolves a gearItemId that may be a shortId or a UUID. Returns the Gear record or null. */
+async function resolveGear(gearItemId) {
+  const where = SHORT_ID_RE.test(gearItemId)
+    ? { shortId: gearItemId.toUpperCase() }
+    : { id: gearItemId };
+  return prisma.gear.findUnique({ where });
+}
+
 export async function listLoans(req, res, next) {
   try {
     const { status, gearItemId, userId } = req.query;
@@ -66,7 +77,7 @@ export async function checkout(req, res, next) {
     }
 
     // Verify gear exists and is available
-    const gear = await prisma.gear.findUnique({ where: { id: gearItemId } });
+    const gear = await resolveGear(gearItemId);
     if (!gear) {
       return res.status(404).json({ error: 'Gear not found' });
     }
@@ -80,7 +91,7 @@ export async function checkout(req, res, next) {
     const loan = await prisma.$transaction(async (tx) => {
       const newLoan = await tx.loan.create({
         data: {
-          gearItemId,
+          gearItemId: gear.id,
           userId: req.profile.id,
           dueDate,
           notes: notes || null,
@@ -88,18 +99,18 @@ export async function checkout(req, res, next) {
       });
 
       await tx.gear.update({
-        where: { id: gearItemId },
+        where: { id: gear.id },
         data: { loanStatus: 'CHECKED_OUT' },
       });
 
-      // Record QR scan for checkout
-      await tx.qRScan.create({
+      // Record checkout action with location
+      await tx.action.create({
         data: {
+          type: 'CHECKOUT',
           userId: req.profile.id,
-          gearItemId,
+          gearItemId: gear.id,
           latitude,
           longitude,
-          ipAddress: req.ip,
         },
       });
 
@@ -111,7 +122,7 @@ export async function checkout(req, res, next) {
       action: 'CHECKOUT',
       entity: 'Loan',
       entityId: loan.id,
-      details: { gearItemId, dueDate },
+      details: { gearItemId: gear.id, dueDate },
     });
 
     // Send confirmation email (non-blocking)
@@ -174,13 +185,14 @@ export async function returnGear(req, res, next) {
         data: { loanStatus: 'AVAILABLE' },
       });
 
-      await tx.qRScan.create({
+      // Record return action with location
+      await tx.action.create({
         data: {
+          type: 'RETURN',
           userId: req.profile.id,
           gearItemId: loan.gearItemId,
           latitude,
           longitude,
-          ipAddress: req.ip,
         },
       });
     });

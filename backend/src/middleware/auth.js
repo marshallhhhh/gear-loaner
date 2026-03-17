@@ -48,6 +48,7 @@ export async function authenticate(req, res, next) {
     req.profile = profile;
     next();
   } catch (err) {
+    console.log(err)
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }

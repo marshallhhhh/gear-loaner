@@ -1,6 +1,10 @@
 import prisma from '../config/prisma.js';
 import { generateAndStoreQRCode } from '../services/qrCodeService.js';
 import { logAction } from '../services/auditService.js';
+import { generateShortId } from '../services/shortIdService.js';
+
+/** Matches the AAA-XXX short ID format */
+const SHORT_ID_RE = /^[A-Za-z]{3}-\d{3}$/;
 
 export async function listGear(req, res, next) {
   try {
@@ -14,6 +18,7 @@ export async function listGear(req, res, next) {
         { name: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
         { serialNumber: { contains: search, mode: 'insensitive' } },
+        { shortId: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -30,8 +35,14 @@ export async function listGear(req, res, next) {
 
 export async function getGear(req, res, next) {
   try {
+    const param = req.params.id;
+    // Resolve by shortId (AAA-XXX) or fall back to UUID
+    const where = SHORT_ID_RE.test(param)
+      ? { shortId: param.toUpperCase() }
+      : { id: param };
+
     const gear = await prisma.gear.findUnique({
-      where: { id: req.params.id },
+      where,
       include: {
         loans: {
           where: { status: 'ACTIVE' },
@@ -67,20 +78,27 @@ export async function createGear(req, res, next) {
       return res.status(400).json({ error: 'Name is required' });
     }
 
+    // Generate shortId before creating so it can be stored atomically
+    const shortId = await generateShortId(name, category);
+
     const gear = await prisma.gear.create({
       data: {
         name,
         description: description || null,
         category: category || null,
         tags: tags || [],
-        serialNumber: serialNumber || null,
+        // treat empty string or whitespace-only as null so DB stores NULL instead of ""
+        serialNumber: typeof serialNumber === 'string' && serialNumber.trim() !== ''
+          ? serialNumber.trim()
+          : null,
         defaultLoanDays: defaultLoanDays || 7,
+        shortId,
       },
     });
 
-    // Generate and store QR code
+    // Generate and store QR code (pointing to /gear/{shortId})
     try {
-      const qrCodeUrl = await generateAndStoreQRCode(gear.id);
+      const qrCodeUrl = await generateAndStoreQRCode(gear.id, gear.shortId);
       await prisma.gear.update({
         where: { id: gear.id },
         data: { qrCodeUrl },
@@ -106,6 +124,7 @@ export async function createGear(req, res, next) {
 
 export async function updateGear(req, res, next) {
   try {
+    // shortId is intentionally excluded — it is server-generated and immutable
     const { name, description, category, tags, serialNumber, defaultLoanDays, loanStatus } = req.body;
 
     const data = {};
@@ -113,7 +132,12 @@ export async function updateGear(req, res, next) {
     if (description !== undefined) data.description = description;
     if (category !== undefined) data.category = category;
     if (tags !== undefined) data.tags = tags;
-    if (serialNumber !== undefined) data.serialNumber = serialNumber;
+    if (serialNumber !== undefined) {
+      // convert empty string or whitespace-only to null; trim non-empty strings
+      data.serialNumber = typeof serialNumber === 'string' && serialNumber.trim() !== ''
+        ? serialNumber.trim()
+        : null;
+    }
     if (defaultLoanDays !== undefined) data.defaultLoanDays = defaultLoanDays;
     if (loanStatus !== undefined) data.loanStatus = loanStatus;
 
@@ -166,7 +190,7 @@ export async function deleteGear(req, res, next) {
 
 export async function reportLost(req, res, next) {
   try {
-    const { contactInfo, notes } = req.body;
+    const { contactInfo, notes, latitude, longitude } = req.body;
     const gearId = req.params.id;
 
     const gear = await prisma.gear.findUnique({ where: { id: gearId } });
@@ -179,12 +203,30 @@ export async function reportLost(req, res, next) {
       data: { loanStatus: 'LOST' },
     });
 
+    const details = { contactInfo, notes };
+    if (latitude != null && longitude != null) {
+      details.latitude = latitude;
+      details.longitude = longitude;
+    }
+
+    // Record the REPORT_LOST action
+    await prisma.action.create({
+      data: {
+        type: 'REPORT_LOST',
+        userId: req.profile?.id || null,
+        gearItemId: gearId,
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
+        details: { contactInfo, notes },
+      },
+    });
+
     await logAction({
       userId: req.profile?.id || null,
       action: 'REPORT_LOST',
       entity: 'Gear',
       entityId: gearId,
-      details: { contactInfo, notes },
+      details,
     });
 
     res.json({ message: 'Gear reported as lost. Thank you.' });

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
 
 export default function GearManagement() {
   const { getToken } = useAuth();
+  const navigate = useNavigate();
   const [gear, setGear] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -16,11 +18,12 @@ export default function GearManagement() {
     name: '',
     description: '',
     category: '',
-    serialNumber: '',
     tags: '',
     defaultLoanDays: 7,
   };
   const [form, setForm] = useState(emptyForm);
+  // shortId of the item currently being edited (read-only display)
+  const [editingShortId, setEditingShortId] = useState(null);
 
   useEffect(() => {
     fetchGear();
@@ -43,11 +46,11 @@ export default function GearManagement() {
       name: item.name,
       description: item.description || '',
       category: item.category || '',
-      serialNumber: item.serialNumber || '',
       tags: (item.tags || []).join(', '),
       defaultLoanDays: item.defaultLoanDays,
     });
     setEditingId(item.id);
+    setEditingShortId(item.shortId || null);
     setShowForm(true);
   }
 
@@ -72,6 +75,7 @@ export default function GearManagement() {
       }
       setShowForm(false);
       setEditingId(null);
+      setEditingShortId(null);
       setForm(emptyForm);
       fetchGear();
     } catch (err) {
@@ -101,6 +105,7 @@ export default function GearManagement() {
           onClick={() => {
             setForm(emptyForm);
             setEditingId(null);
+            setEditingShortId(null);
             setShowForm(!showForm);
           }}
           className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
@@ -149,14 +154,16 @@ export default function GearManagement() {
                 className="w-full border rounded-lg px-3 py-2"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Serial Number</label>
-              <input
-                value={form.serialNumber}
-                onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
-              />
-            </div>
+            {editingId && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Short ID</label>
+                <input
+                  readOnly
+                  value={editingShortId || '—'}
+                  className="w-full border rounded-lg px-3 py-2 bg-gray-50 text-gray-500 cursor-not-allowed font-mono"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium mb-1">Default Loan Days</label>
               <input
@@ -206,33 +213,37 @@ export default function GearManagement() {
             <tr>
               <th className="text-left px-4 py-3 font-medium">Name</th>
               <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Category</th>
-              <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Serial #</th>
+              <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Gear ID</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
               <th className="text-right px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {gear.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">{item.name}</td>
+              <tr
+                key={item.id}
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => navigate(`/admin/gear/${item.id}`)}
+              >
+                <td className="px-4 py-3 font-medium text-primary-600 hover:underline">{item.name}</td>
                 <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
                   {item.category || '—'}
                 </td>
-                <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
-                  {item.serialNumber || '—'}
+                <td className="px-4 py-3 text-gray-500 hidden md:table-cell font-mono">
+                  {item.shortId || '—'}
                 </td>
                 <td className="px-4 py-3">
                   <GearStatusBadge status={item.loanStatus} />
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   <button
-                    onClick={() => handleEdit(item)}
+                    onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
                     className="text-primary-600 hover:underline text-xs"
                   >
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(item.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                     className="text-red-600 hover:underline text-xs"
                   >
                     Delete
