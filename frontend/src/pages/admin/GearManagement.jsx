@@ -19,7 +19,9 @@ export default function GearManagement() {
 
   // client-side filtering — no extra API calls when filter/search changes
   const gear = allGear.filter((item) => {
-    if (statusFilter && item.loanStatus !== statusFilter) return false;
+    if (statusFilter === 'REPORTED_LOST') {
+      if (!item.reportedLost || item.loanStatus === 'LOST') return false;
+    } else if (statusFilter && item.loanStatus !== statusFilter) return false;
     if (search) {
       const q = search.toLowerCase();
       return (
@@ -206,6 +208,7 @@ export default function GearManagement() {
           <option value="AVAILABLE">Available</option>
           <option value="CHECKED_OUT">Checked Out</option>
           <option value="LOST">Lost</option>
+          <option value="REPORTED_LOST">Reported Lost</option>
           <option value="RETIRED">Retired</option>
         </select>
       </div>
@@ -370,7 +373,7 @@ export default function GearManagement() {
                   {item.shortId || '—'}
                 </td>
                 <td className="px-4 py-3">
-                  <GearStatusBadge status={item.loanStatus} />
+                  <GearStatusBadge status={item.loanStatus} reportedLost={item.reportedLost} />
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   <button

@@ -77,11 +77,20 @@ export async function getDashboardStats(req, res, next) {
         prisma.profile.count(),
       ]);
 
+    // Only count items whose most recent Action is REPORT_LOST and not yet
+    // confirmed LOST by an admin.
+    const activeReportedLostIds = await getActiveReportedLostGearIds();
+    const confirmedLostIds = new Set(
+      (await prisma.gear.findMany({ where: { loanStatus: 'LOST' }, select: { id: true } })).map((g) => g.id)
+    );
+    const reportedLost = [...activeReportedLostIds].filter((id) => !confirmedLostIds.has(id)).length;
+
     res.json({
       totalGear,
       availableGear,
       checkedOut,
       lost,
+      reportedLost,
       activeLoans,
       overdueLoans,
       totalUsers,
@@ -89,6 +98,36 @@ export async function getDashboardStats(req, res, next) {
   } catch (err) {
     next(err);
   }
+}
+
+/**
+ * Returns the set of gear IDs whose most recent Action is REPORT_LOST.
+ * Items where a subsequent action (CHECKOUT, RETURN, etc.) occurred are excluded.
+ */
+async function getActiveReportedLostGearIds() {
+  const candidates = await prisma.action.findMany({
+    where: { type: 'REPORT_LOST' },
+    select: { gearItemId: true },
+    distinct: ['gearItemId'],
+  });
+
+  if (candidates.length === 0) return new Set();
+
+  const latestActions = await Promise.all(
+    candidates.map(({ gearItemId }) =>
+      prisma.action.findFirst({
+        where: { gearItemId },
+        orderBy: { createdAt: 'desc' },
+        select: { gearItemId: true, type: true },
+      })
+    )
+  );
+
+  return new Set(
+    latestActions
+      .filter((a) => a?.type === 'REPORT_LOST')
+      .map((a) => a.gearItemId)
+  );
 }
 
 export async function getAuditLog(req, res, next) {
@@ -101,7 +140,7 @@ export async function getAuditLog(req, res, next) {
     const logs = await prisma.auditLog.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: parseInt(limit, 10) || 100,
+      take: Math.min(parseInt(limit, 10) || 100, 500),
     });
 
     res.json(logs);
@@ -114,24 +153,30 @@ export async function getAdminGearDetail(req, res, next) {
   try {
     const gearId = req.params.id;
 
-    const gear = await prisma.gear.findUnique({
-      where: { id: gearId },
-      include: {
-        category: { select: { name: true } },
-        loans: {
-          include: {
-            user: { select: { id: true, email: true, fullName: true } },
+    const [gear, auditLogs] = await Promise.all([
+      prisma.gear.findUnique({
+        where: { id: gearId },
+        include: {
+          category: { select: { name: true } },
+          loans: {
+            include: {
+              user: { select: { id: true, email: true, fullName: true } },
+            },
+            orderBy: { createdAt: 'desc' },
           },
-          orderBy: { createdAt: 'desc' },
-        },
-        actions: {
-          include: {
-            user: { select: { id: true, email: true, fullName: true } },
+          actions: {
+            include: {
+              user: { select: { id: true, email: true, fullName: true } },
+            },
+            orderBy: { createdAt: 'desc' },
           },
-          orderBy: { createdAt: 'desc' },
         },
-      },
-    });
+      }),
+      prisma.auditLog.findMany({
+        where: { entity: 'Gear', entityId: gearId },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
 
     if (!gear) {
       return res.status(404).json({ error: 'Gear not found' });
@@ -139,12 +184,6 @@ export async function getAdminGearDetail(req, res, next) {
 
     // Current active loan
     const activeLoan = gear.loans.find((l) => l.status === 'ACTIVE') || null;
-
-    // Audit logs for this gear item (for admin-level edits, etc.)
-    const auditLogs = await prisma.auditLog.findMany({
-      where: { entity: 'Gear', entityId: gearId },
-      orderBy: { createdAt: 'desc' },
-    });
 
     // Loan-level audit logs (OVERRIDE, etc.)
     const loanIds = gear.loans.map((l) => l.id);
@@ -183,24 +222,32 @@ export async function getAdminGearDetail(req, res, next) {
       CHECKOUT: 'Checkout',
       RETURN: 'Return',
       REPORT_LOST: 'Reported Lost',
+      STATUS_CHANGE: 'Status Change',
     };
 
     for (const action of gear.actions) {
-      history.push({
+      const entry = {
         time: action.createdAt,
         user: action.user?.fullName || action.user?.email || 'Anonymous',
         userId: action.userId,
         location: formatLoc(action.latitude, action.longitude),
         action: actionLabels[action.type] || action.type,
         details: action.details || null,
-      });
+      };
+      // For STATUS_CHANGE, show the target status in the label
+      if (action.type === 'STATUS_CHANGE' && action.details?.newStatus) {
+        entry.action = `Status → ${action.details.newStatus.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}`;
+      }
+      history.push(entry);
     }
 
     // Audit logs (gear-level: UPDATE, DELETE, etc.)
+    // Status change values (AVAILABLE, CHECKED_OUT, LOST, RETIRED) are now
+    // recorded as Action records, so skip them here to avoid duplicates.
+    const STATUS_VALUES = new Set(['AVAILABLE', 'CHECKED_OUT', 'LOST', 'RETIRED']);
     for (const log of auditLogs) {
       const u = log.userId ? userMap[log.userId] : null;
-      // Skip CREATE and REPORT_LOST — CREATE is redundant, REPORT_LOST is already in actions
-      if (log.action === 'CREATE' || log.action === 'REPORT_LOST') continue;
+      if (log.action === 'CREATE' || log.action === 'REPORT_LOST' || STATUS_VALUES.has(log.action)) continue;
       history.push({
         time: log.createdAt,
         user: u?.fullName || u?.email || 'System',

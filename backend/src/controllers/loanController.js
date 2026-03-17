@@ -232,34 +232,33 @@ export async function overrideLoan(req, res, next) {
     const loanId = req.params.id;
     const { status, dueDate, notes } = req.body;
 
+    const VALID_STATUSES = ['ACTIVE', 'RETURNED'];
+    if (status && !VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
+    }
+
     const data = {};
     if (status) data.status = status;
     if (dueDate) data.dueDate = new Date(dueDate);
     if (status === 'RETURNED') data.returnDate = new Date();
     if (notes !== undefined) data.notes = notes;
 
-    const loan = await prisma.loan.update({
-      where: { id: loanId },
-      data,
-      include: { gearItem: true },
-    });
-
-    // If marking as returned, update gear status
-    if (status === 'RETURNED') {
-      await prisma.gear.update({
-        where: { id: loan.gearItemId },
-        data: { loanStatus: 'AVAILABLE' },
+    const loan = await prisma.$transaction(async (tx) => {
+      const updated = await tx.loan.update({
+        where: { id: loanId },
+        data,
+        include: { gearItem: true },
       });
-    }
-
-    await logAction({
-      userId: req.profile.id,
-      action: 'OVERRIDE',
-      entity: 'Loan',
-      entityId: loanId,
-      details: data,
+      if (status === 'RETURNED') {
+        await tx.gear.update({
+          where: { id: updated.gearItemId },
+          data: { loanStatus: 'AVAILABLE' },
+        });
+      }
+      return updated;
     });
 
+    await logAction({ userId: req.profile.id, action: 'OVERRIDE', entity: 'Loan', entityId: loanId, details: data });
     res.json(loan);
   } catch (err) {
     next(err);

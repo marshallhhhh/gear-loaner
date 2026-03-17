@@ -53,7 +53,14 @@ export async function updateUser(req, res, next) {
     const { role, isActive, fullName } = req.body;
     const data = {};
 
-    if (role !== undefined) data.role = role;
+    const VALID_ROLES = ['MEMBER', 'ADMIN'];
+    if (role !== undefined) {
+      if (!VALID_ROLES.includes(role)) return res.status(400).json({ error: 'Invalid role' });
+      if (req.params.id === req.profile.id && role !== 'ADMIN') {
+        return res.status(400).json({ error: 'Cannot demote yourself' });
+      }
+      data.role = role;
+    }
     if (isActive !== undefined) data.isActive = isActive;
     if (fullName !== undefined) data.fullName = fullName;
 

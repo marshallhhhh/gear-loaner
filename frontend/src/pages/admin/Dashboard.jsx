@@ -33,7 +33,8 @@ export default function Dashboard() {
     { label: 'Total Items', value: stats.totalGear, linkTo: '/admin/gear', bgColor: 'bg-blue-500', textColor: 'text-blue-500' },
     { label: 'Available', value: stats.availableGear, linkTo: '/admin/gear?status=AVAILABLE', bgColor: 'bg-green-500', textColor: 'text-green-500' },
     { label: 'Checked Out', value: stats.checkedOut, linkTo: '/admin/gear?status=CHECKED_OUT', bgColor: 'bg-yellow-500', textColor: 'text-yellow-500' },
-    { label: 'Lost', value: stats.lost, linkTo: '/admin/gear?status=LOST', bgColor: 'bg-red-500', textColor: 'text-red-500' },
+    { label: 'Lost', value: stats.lost + (stats.reportedLost || 0), linkTo: '/admin/gear?status=LOST', bgColor: 'bg-red-500', textColor: 'text-red-500', subtitle: stats.reportedLost ? `${stats.reportedLost} reported` : null },
+    { label: 'Reported Lost', value: stats.reportedLost || 0, linkTo: '/admin/gear?status=REPORTED_LOST', bgColor: 'bg-orange-500', textColor: 'text-orange-500' },
     { label: 'Active Loans', value: stats.activeLoans, linkTo: '/admin/loans?status=ACTIVE', bgColor: 'bg-purple-500', textColor: 'text-purple-500' },
     { label: 'Overdue', value: stats.overdueLoans, linkTo: '/admin/loans?status=OVERDUE', bgColor: 'bg-red-600', textColor: 'text-red-600' },
     { label: 'Total Users', value: stats.totalUsers, linkTo: '/admin/users', bgColor: 'bg-indigo-500', textColor: 'text-indigo-500' },
@@ -54,6 +55,9 @@ export default function Dashboard() {
               {card.value}
             </div>
             <div className="text-sm text-gray-500 mt-1">{card.label}</div>
+            {card.subtitle && (
+              <div className="text-xs text-gray-400 mt-0.5">{card.subtitle}</div>
+            )}
           </Link>
         ))}
       </div>

@@ -9,7 +9,8 @@ export function errorHandler(err, req, res, _next) {
     return res.status(409).json({ error: 'A record with that unique value already exists' });
   }
 
+  const isProd = process.env.NODE_ENV === 'production';
   res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
+    error: isProd ? 'Internal server error' : (err.message || 'Internal server error'),
   });
 }

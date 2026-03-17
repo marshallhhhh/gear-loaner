@@ -23,6 +23,10 @@ function getTransporter() {
   return transporter;
 }
 
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 async function sendMail({ to, subject, html }) {
   const t = getTransporter();
 
@@ -46,7 +50,7 @@ export async function sendCheckoutConfirmation({ email, gearName, dueDate }) {
     subject: `Gear Checked Out: ${gearName}`,
     html: `
       <h2>Checkout Confirmation</h2>
-      <p>You have checked out <strong>${gearName}</strong>.</p>
+      <p>You have checked out <strong>${escapeHtml(gearName)}</strong>.</p>
       <p>Due date: <strong>${new Date(dueDate).toLocaleDateString()}</strong></p>
       <p>Please return the gear on or before the due date.</p>
       <p>— TAS Uni Climbing Club</p>

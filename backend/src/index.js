@@ -21,6 +21,9 @@ app.use(
   })
 );
 
+// Trust proxy for correct req.ip behind reverse proxies
+app.set('trust proxy', 1);
+
 // Rate limiting
 app.use(
   rateLimit({
@@ -33,9 +36,6 @@ app.use(
 
 // Body parsing
 app.use(express.json({ limit: '1mb' }));
-
-// Trust proxy for correct req.ip behind reverse proxies
-app.set('trust proxy', 1);
 
 // Routes
 app.use('/api/gear', gearRoutes);

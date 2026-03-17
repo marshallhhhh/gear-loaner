@@ -55,6 +55,8 @@ model Gear {
 
   loans   Loan[]
   actions Action[]
+  @@index([loanStatus])
+  @@index([categoryId])
 }
 
 model Category {
@@ -62,7 +64,6 @@ model Category {
   name      String   @unique
   createdAt DateTime @default(now())
 
-  // back-reference
   gears     Gear[]
 }
 
@@ -90,6 +91,7 @@ enum ActionType {
   RETURN
   REPORT_LOST
   RETIRED
+  STATUS_CHANGE
 }
 
 model Action {
@@ -119,4 +121,5 @@ model AuditLog {
 
   @@index([entity, entityId])
   @@index([userId])
+  @@index([action])
 }

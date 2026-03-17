@@ -21,7 +21,7 @@ export async function hasOverdueLoans(userId) {
  * Returns the due date.
  */
 export function calculateDueDate(requestedDays, defaultDays) {
-  const days = Math.min(requestedDays || defaultDays || 7, MAX_LOAN_DAYS);
+  const days = Math.max(1, Math.min(requestedDays || defaultDays || 7, MAX_LOAN_DAYS));
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + days);
   return dueDate;

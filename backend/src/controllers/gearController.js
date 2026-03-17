@@ -6,13 +6,55 @@ import { generateShortId } from '../services/shortIdService.js';
 /** Matches the AAA-XXX short ID format */
 const SHORT_ID_RE = /^[A-Za-z]{3}-\d{3}$/;
 
+/**
+ * Returns the set of gear IDs whose most recent Action is REPORT_LOST.
+ * Items where a subsequent action (CHECKOUT, RETURN, etc.) occurred are excluded.
+ */
+async function getActiveReportedLostGearIds() {
+  const candidates = await prisma.action.findMany({
+    where: { type: 'REPORT_LOST' },
+    select: { gearItemId: true },
+    distinct: ['gearItemId'],
+  });
+
+  if (candidates.length === 0) return new Set();
+
+  const latestActions = await Promise.all(
+    candidates.map(({ gearItemId }) =>
+      prisma.action.findFirst({
+        where: { gearItemId },
+        orderBy: { createdAt: 'desc' },
+        select: { gearItemId: true, type: true },
+      })
+    )
+  );
+
+  return new Set(
+    latestActions
+      .filter((a) => a?.type === 'REPORT_LOST')
+      .map((a) => a.gearItemId)
+  );
+}
+
 export async function listGear(req, res, next) {
   try {
     const { category, status, search } = req.query;
     const where = {};
 
+    // Build the set of gear IDs with an *active* lost report.
+    // A report is active only when the most recent Action for the gear is REPORT_LOST.
+    const activeReportedLostIds = await getActiveReportedLostGearIds();
+
+    // For the special REPORTED_LOST filter, show only actively-reported items
+    if (status === 'REPORTED_LOST') {
+      where.id = { in: [...activeReportedLostIds] };
+      // Exclude items already confirmed LOST by admin
+      where.loanStatus = { not: 'LOST' };
+    } else if (status) {
+      where.loanStatus = status;
+    }
+
     if (category) where.category = { name: category };
-    if (status) where.loanStatus = status;
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -29,7 +71,11 @@ export async function listGear(req, res, next) {
     });
 
     // Normalize response shape: return `category` as a string (legacy shape)
-    const normalized = gear.map((g) => ({ ...g, category: g.category?.name || null }));
+    const normalized = gear.map((g) => ({
+      ...g,
+      category: g.category?.name || null,
+      reportedLost: activeReportedLostIds.has(g.id),
+    }));
     res.json(normalized);
   } catch (err) {
     next(err);
@@ -178,8 +224,19 @@ export async function updateGear(req, res, next) {
         ? serialNumber.trim()
         : null;
     }
-    if (defaultLoanDays !== undefined) data.defaultLoanDays = defaultLoanDays;
-    if (loanStatus !== undefined) data.loanStatus = loanStatus;
+    if (defaultLoanDays !== undefined) {
+      const d = Number(defaultLoanDays);
+      if (!Number.isInteger(d) || d < 1 || d > 30) {
+        return res.status(400).json({ error: 'defaultLoanDays must be between 1 and 30' });
+      }
+      data.defaultLoanDays = defaultLoanDays;
+    }
+    
+    const VALID_GEAR_STATUSES = ['AVAILABLE', 'CHECKED_OUT', 'LOST', 'RETIRED'];
+    if (loanStatus !== undefined) {
+      if (!VALID_GEAR_STATUSES.includes(loanStatus)) return res.status(400).json({ error: `Invalid loanStatus` });
+      data.loanStatus = loanStatus;
+    }
 
     // Handle category relation explicitly
     if (category !== undefined) {
@@ -214,6 +271,20 @@ export async function updateGear(req, res, next) {
     // otherwise fall back to generic UPDATE.
     const statusChanged = loanStatus !== undefined && existingGear?.loanStatus !== loanStatus;
     const auditAction = statusChanged ? loanStatus : 'UPDATE';
+
+    // When an admin changes the status, record an Action so the gear's action
+    // timeline stays consistent with checkout/return/report-lost flows.
+    // This also clears the "reported lost" badge when status is changed.
+    if (statusChanged) {
+      await prisma.action.create({
+        data: {
+          type: 'STATUS_CHANGE',
+          userId: req.profile.id,
+          gearItemId: gear.id,
+          details: { previousStatus: existingGear?.loanStatus, newStatus: loanStatus },
+        },
+      });
+    }
 
     await logAction({
       userId: req.profile.id,
@@ -269,10 +340,13 @@ export async function reportLost(req, res, next) {
       return res.status(404).json({ error: 'Gear not found' });
     }
 
-    await prisma.gear.update({
-      where: { id: gearId },
-      data: { loanStatus: 'LOST' },
-    });
+    // Only admins can actually change gear status to LOST
+    if (req.profile?.role === 'ADMIN') {
+      await prisma.gear.update({
+        where: { id: gearId },
+        data: { loanStatus: 'LOST' },
+      });
+    }
 
     const details = { contactInfo, notes };
     if (latitude != null && longitude != null) {
@@ -280,7 +354,7 @@ export async function reportLost(req, res, next) {
       details.longitude = longitude;
     }
 
-    // Record the REPORT_LOST action
+    // Record the REPORT_LOST action (always, regardless of role)
     await prisma.action.create({
       data: {
         type: 'REPORT_LOST',
