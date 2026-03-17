@@ -53,8 +53,18 @@ const DEFAULT_CONFIG = {
   template: DEFAULT_TEMPLATE,
 };
 
+// ── HTML escaping to prevent XSS ─────────────────────────────────────
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // ── Interpolate placeholders with gear data ──────────────────────────
-const APP_URL = import.meta.env.VITE_APP_URL || 'https://tasuniclimbing.club';
+const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
 async function renderTemplate(template, gear) {
   // Generate QR code data URL for this gear item
@@ -70,14 +80,14 @@ async function renderTemplate(template, gear) {
   } catch { /* fallback: leave empty */ }
 
   let html = template;
-  html = html.replace(/\{\{\s*Name\s*\}\}/g, gear.name || '');
-  html = html.replace(/\{\{\s*ShortId\s*\}\}/g, gear.shortId || '');
-  html = html.replace(/\{\{\s*Category\s*\}\}/g, gear.category || '');
-  html = html.replace(/\{\{\s*SerialNumber\s*\}\}/g, gear.serialNumber || '');
-  html = html.replace(/\{\{\s*Description\s*\}\}/g, gear.description || '');
+  html = html.replace(/\{\{\s*Name\s*\}\}/g, escapeHtml(gear.name || ''));
+  html = html.replace(/\{\{\s*ShortId\s*\}\}/g, escapeHtml(gear.shortId || ''));
+  html = html.replace(/\{\{\s*Category\s*\}\}/g, escapeHtml(gear.category || ''));
+  html = html.replace(/\{\{\s*SerialNumber\s*\}\}/g, escapeHtml(gear.serialNumber || ''));
+  html = html.replace(/\{\{\s*Description\s*\}\}/g, escapeHtml(gear.description || ''));
   html = html.replace(/\{\{\s*QRCode\s*\}\}/g, qrDataUrl);
-  html = html.replace(/\{\{\s*Tags\s*\}\}/g, (gear.tags || []).join(', '));
-  html = html.replace(/\{\{\s*DefaultLoanDays\s*\}\}/g, String(gear.defaultLoanDays ?? ''));
+  html = html.replace(/\{\{\s*Tags\s*\}\}/g, escapeHtml((gear.tags || []).join(', ')));
+  html = html.replace(/\{\{\s*DefaultLoanDays\s*\}\}/g, escapeHtml(String(gear.defaultLoanDays ?? '')));
   return html;
 }
 
@@ -94,6 +104,15 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
   useEffect(() => {
     saveConfig(config);
   }, [config]);
+
+  // Close on Escape key
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   // Re-render tags whenever config template or gear items change
   useEffect(() => {
@@ -213,6 +232,7 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 text-2xl leading-none px-2"
+              aria-label="Close"
             >
               ×
             </button>

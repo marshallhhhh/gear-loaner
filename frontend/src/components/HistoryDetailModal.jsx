@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import ActionBadge from './ActionBadge.jsx';
 import MiniMap from './MiniMap.jsx';
 
@@ -7,6 +8,15 @@ import MiniMap from './MiniMap.jsx';
  * @param {{ entry: object, onClose: () => void }} props
  */
 export default function HistoryDetailModal({ entry, onClose }) {
+  useEffect(() => {
+    if (!entry) return;
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [entry, onClose]);
+
   if (!entry) return null;
 
   const { action, time, user, location, details } = entry;

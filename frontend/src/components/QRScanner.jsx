@@ -8,39 +8,60 @@ export default function QRScanner({ onScan, onError }) {
 
   useEffect(() => {
     return () => {
-      if (scannerRef.current?.isScanning) {
-        scannerRef.current.stop().catch(() => {});
+      const s = scannerRef.current;
+      if (s) {
+        s.stop().catch(() => {}).finally(() => {
+          try {
+            s.clear();
+          } catch (e) {}
+        });
       }
     };
   }, []);
 
   async function startScanning() {
-    if (scannerRef.current?.isScanning) return;
+    if (scanning) return;
 
     try {
+      const cameras = await Html5Qrcode.getCameras();
+      let chosenCameraId = null;
+      if (cameras && cameras.length) {
+        chosenCameraId = cameras.find((c) => /back|rear|environment/i.test(c.label))?.id || cameras[0].id;
+      }
+
       const scanner = new Html5Qrcode('qr-reader');
       scannerRef.current = scanner;
 
+      const cameraConfig = chosenCameraId || { facingMode: 'environment' };
+
       await scanner.start(
-        { facingMode: 'environment' },
+        cameraConfig,
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
           scanner.stop().catch(() => {});
           setScanning(false);
           onScan(decodedText);
         },
-        () => {} // ignore scan failures (no QR in frame)
+        () => {}
       );
 
       setScanning(true);
     } catch (err) {
-      onError?.(err.message || 'Failed to start camera');
+      const message = err?.message || String(err) || 'Failed to start camera';
+      onError?.(message);
     }
   }
 
   function stopScanning() {
-    if (scannerRef.current?.isScanning) {
-      scannerRef.current.stop().catch(() => {});
+    const s = scannerRef.current;
+    if (s) {
+      s.stop()
+        .catch(() => {})
+        .finally(() => {
+          try {
+            s.clear();
+          } catch (e) {}
+        });
     }
     setScanning(false);
   }

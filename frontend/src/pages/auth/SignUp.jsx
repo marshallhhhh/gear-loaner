@@ -51,8 +51,9 @@ export default function SignUp() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Full Name</label>
+          <label htmlFor="signup-name" className="block text-sm font-medium mb-1">Full Name</label>
           <input
+            id="signup-name"
             type="text"
             required
             value={fullName}
@@ -62,8 +63,9 @@ export default function SignUp() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
+          <label htmlFor="signup-email" className="block text-sm font-medium mb-1">Email</label>
           <input
+            id="signup-email"
             type="email"
             required
             value={email}
@@ -73,8 +75,9 @@ export default function SignUp() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Password</label>
+          <label htmlFor="signup-password" className="block text-sm font-medium mb-1">Password</label>
           <input
+            id="signup-password"
             type="password"
             required
             minLength={6}

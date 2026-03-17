@@ -36,14 +36,14 @@ export default function PrintTags() {
           const idList = ids.split(',').filter(Boolean);
           const results = await Promise.all(
             idList.map(async (id) => {
-              const data = await api(`/admin/gear/${id}`, { token: getToken() });
+              const data = await api(`/admin/gear/${id}`, { token: await getToken() });
               return data.gear;
             })
           );
           setGearItems(results.filter(Boolean));
         } else {
           // Fetch all gear
-          const data = await api('/gear', { token: getToken() });
+          const data = await api('/gear', { token: await getToken() });
           setGearItems(data);
         }
       } catch (err) {

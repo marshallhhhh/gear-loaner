@@ -13,6 +13,7 @@ export default function GearManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
+  const [fetchError, setFetchError] = useState('');
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const statusFilter = searchParams.get('status') || '';
@@ -60,10 +61,11 @@ export default function GearManagement() {
 
   async function fetchGear() {
     try {
-      const data = await api('/gear', { token: getToken() });
+      const data = await api('/gear', { token: await getToken() });
       setAllGear(data);
+      setFetchError('');
     } catch (err) {
-      console.error(err);
+      setFetchError(err.message);
     } finally {
       setLoading(false);
     }
@@ -100,9 +102,9 @@ export default function GearManagement() {
     setSaving(true);
     try {
       if (editingId) {
-        await api(`/gear/${editingId}`, { method: 'PUT', token: getToken(), body });
+        await api(`/gear/${editingId}`, { method: 'PUT', token: await getToken(), body });
       } else {
-        await api('/gear', { method: 'POST', token: getToken(), body });
+        await api('/gear', { method: 'POST', token: await getToken(), body });
       }
       setShowForm(false);
       setEditingId(null);
@@ -122,7 +124,7 @@ export default function GearManagement() {
   async function handleDelete(id) {
     if (!confirm('Delete this gear item? This cannot be undone.')) return;
     try {
-      await api(`/gear/${id}`, { method: 'DELETE', token: getToken() });
+      await api(`/gear/${id}`, { method: 'DELETE', token: await getToken() });
       setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
       fetchGear();
     } catch (err) {
@@ -159,6 +161,9 @@ export default function GearManagement() {
 
   return (
     <div>
+      {fetchError && (
+        <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{fetchError}</div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Gear Inventory</h1>
         <div className="flex items-center gap-2">

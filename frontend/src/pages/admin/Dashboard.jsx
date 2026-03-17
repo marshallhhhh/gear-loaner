@@ -11,7 +11,8 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetch() {
       try {
-        const data = await api('/admin/stats', { token: getToken() });
+        const token = await getToken();
+        const data = await api('/admin/stats', { token });
         setStats(data);
       } catch (err) {
         console.error(err);
@@ -20,7 +21,27 @@ export default function Dashboard() {
       }
     }
     fetch();
-  }, []);
+  }, [getToken]);
+
+  async function handleExport(path, filename) {
+    try {
+      const token = await getToken();
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const res = await fetch(`${API_URL}${path}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
 
   if (loading) {
     return <div className="text-center py-20 text-gray-500">Loading dashboard…</div>;
@@ -90,18 +111,18 @@ export default function Dashboard() {
         <div className="bg-white rounded-xl shadow p-6">
           <h3 className="font-semibold text-lg mb-2">Export Data</h3>
           <div className="flex gap-2">
-            <a
-              href={`${import.meta.env.VITE_API_URL}/admin/export/gear`}
+            <button
+              onClick={() => handleExport('/admin/export/gear', 'gear.csv')}
               className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded"
             >
               Gear CSV
-            </a>
-            <a
-              href={`${import.meta.env.VITE_API_URL}/admin/export/loans`}
+            </button>
+            <button
+              onClick={() => handleExport('/admin/export/loans', 'loans.csv')}
               className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded"
             >
               Loans CSV
-            </a>
+            </button>
           </div>
         </div>
       </div>

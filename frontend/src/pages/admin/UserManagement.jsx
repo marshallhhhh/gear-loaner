@@ -9,13 +9,14 @@ export default function UserManagement() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetchUsers();
+    const timer = setTimeout(() => fetchUsers(), 300);
+    return () => clearTimeout(timer);
   }, [search]);
 
   async function fetchUsers() {
     try {
       const params = search ? `?search=${encodeURIComponent(search)}` : '';
-      const data = await api(`/users${params}`, { token: getToken() });
+      const data = await api(`/users${params}`, { token: await getToken() });
       setUsers(data);
     } catch (err) {
       console.error(err);
@@ -28,7 +29,7 @@ export default function UserManagement() {
     try {
       await api(`/users/${userId}`, {
         method: 'PUT',
-        token: getToken(),
+        token: await getToken(),
         body: { isActive: !currentState },
       });
       fetchUsers();
@@ -44,7 +45,7 @@ export default function UserManagement() {
     try {
       await api(`/users/${userId}`, {
         method: 'PUT',
-        token: getToken(),
+        token: await getToken(),
         body: { role: newRole },
       });
       fetchUsers();

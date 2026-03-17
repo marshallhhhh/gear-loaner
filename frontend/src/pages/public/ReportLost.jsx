@@ -36,7 +36,7 @@ export default function ReportLost() {
 
     try {
       const location = await getLocation();
-      const token = getToken();
+      const token = await getToken();
       await api(`/gear/${id}/report-lost`, {
         method: 'POST',
         token,
@@ -71,26 +71,30 @@ export default function ReportLost() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="report-contact" className="block text-sm font-medium mb-1">
             Your Contact Info (optional)
           </label>
           <input
+            id="report-contact"
             type="text"
             value={contactInfo}
             onChange={(e) => setContactInfo(e.target.value)}
             placeholder="Email or phone number"
+            maxLength={200}
             className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label htmlFor="report-notes" className="block text-sm font-medium mb-1">
             Where / how did you find this item?
           </label>
           <textarea
+            id="report-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
+            maxLength={2000}
             className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
           />
         </div>

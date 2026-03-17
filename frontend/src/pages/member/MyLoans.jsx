@@ -8,14 +8,16 @@ export default function MyLoans() {
   const { getToken } = useAuth();
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
 
   useEffect(() => {
     async function fetch() {
       try {
-        const data = await api('/loans/my', { token: getToken() });
+        const data = await api('/loans/my', { token: await getToken() });
         setLoans(data);
+        setFetchError('');
       } catch (err) {
-        console.error(err);
+        setFetchError(err.message);
       } finally {
         setLoading(false);
       }
@@ -46,7 +48,11 @@ export default function MyLoans() {
         </Link>
       </div>
 
-      {active.length === 0 && returned.length === 0 && (
+      {fetchError && (
+        <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{fetchError}</div>
+      )}
+
+      {active.length === 0 && returned.length === 0 && !fetchError && (
         <p className="text-gray-500 text-center py-12">
           You don't have any loans yet. Scan a QR code to check out gear!
         </p>

@@ -43,7 +43,7 @@ export default function GearDetail() {
 
   async function fetchCategories() {
     try {
-      const data = await api('/gear/categories', { token: getToken() });
+      const data = await api('/gear/categories', { token: await getToken() });
       setCategories(data);
     } catch (err) {
       console.error('Failed to load categories:', err.message);
@@ -53,7 +53,7 @@ export default function GearDetail() {
   async function fetchDetail() {
     try {
       setLoading(true);
-      const data = await api(`/admin/gear/${id}`, { token: getToken() });
+      const data = await api(`/admin/gear/${id}`, { token: await getToken() });
       setGear(data.gear);
       setActiveLoan(data.activeLoan);
       setHistory(data.history);
@@ -93,7 +93,7 @@ export default function GearDetail() {
         loanStatus: form.loanStatus,
       };
 
-      await api(`/gear/${id}`, { method: 'PUT', token: getToken(), body });
+      await api(`/gear/${id}`, { method: 'PUT', token: await getToken(), body });
       setEditing(false);
       setShowNewCategory(false);
       setNewCategory('');

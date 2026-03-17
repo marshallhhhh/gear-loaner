@@ -68,8 +68,9 @@ export function AuthProvider({ children }) {
     setProfile(null);
   }
 
-  function getToken() {
-    return session?.access_token || null;
+  async function getToken() {
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    return currentSession?.access_token || null;
   }
 
   const value = {

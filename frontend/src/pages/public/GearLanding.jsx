@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
@@ -25,7 +25,7 @@ export default function GearLanding() {
 
   async function fetchGear() {
     try {
-      const token = getToken();
+      const token = await getToken();
       const data = await api(`/gear/${id}`, { token });
       setGear(data);
       setDurationDays(data.defaultLoanDays || 7);
@@ -56,7 +56,7 @@ export default function GearLanding() {
 
     try {
       const location = await getLocation();
-      const token = getToken();
+      const token = await getToken();
       await api('/loans/checkout', {
         method: 'POST',
         token,
@@ -82,7 +82,7 @@ export default function GearLanding() {
 
     try {
       const location = await getLocation();
-      const token = getToken();
+      const token = await getToken();
       // Find the active loan for this gear belonging to the current user
       const activeLoan = gear.loans?.find((l) => l.isCurrentUserLoan || l.userId === profile.id);
       if (!activeLoan) {
@@ -183,7 +183,7 @@ export default function GearLanding() {
               disabled={returnLoading}
               className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium disabled:opacity-50"
             >
-              {returnLoading ? 'Returning…' : 'Return This Gear'}
+              {returnLoading ? 'Returning…' : 'Return This Item'}
             </button>
           )}
 
@@ -195,9 +195,9 @@ export default function GearLanding() {
 
           {!isAuthenticated && gear.loanStatus === 'AVAILABLE' && (
             <p className="text-center text-gray-500 text-sm">
-              <a href="/login" className="text-primary-600 hover:underline">
+              <Link to="/login" className="text-primary-600 hover:underline">
                 Sign in
-              </a>{' '}
+              </Link>{' '}
               to check out this gear.
             </p>
           )}

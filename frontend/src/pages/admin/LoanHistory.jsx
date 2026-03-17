@@ -8,6 +8,7 @@ export default function LoanHistory() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [allLoans, setAllLoans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const filter = searchParams.get('status') || '';
 
   // client-side filtering — no extra API calls when filter changes
@@ -24,10 +25,11 @@ export default function LoanHistory() {
 
   async function fetchLoans() {
     try {
-      const data = await api('/loans', { token: getToken() });
+      const data = await api('/loans', { token: await getToken() });
       setAllLoans(data);
+      setFetchError('');
     } catch (err) {
-      console.error(err);
+      setFetchError(err.message);
     } finally {
       setLoading(false);
     }
@@ -41,7 +43,7 @@ export default function LoanHistory() {
 
       await api(`/loans/${loanId}/override`, {
         method: 'PUT',
-        token: getToken(),
+        token: await getToken(),
         body,
       });
       fetchLoans();
@@ -76,6 +78,10 @@ export default function LoanHistory() {
           <option value="OVERDUE">Overdue</option>
         </select>
       </div>
+
+      {fetchError && (
+        <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{fetchError}</div>
+      )}
 
       <div className="bg-white rounded-xl shadow overflow-x-auto">
         <table className="w-full text-sm">
