@@ -14,7 +14,7 @@ import { generateAndStoreQRCode } from '../src/services/qrCodeService.js';
 
 async function main() {
   const gear = await prisma.gear.findMany({
-    select: { id: true, name: true, category: true, shortId: true },
+    select: { id: true, name: true, category: { select: { name: true } }, shortId: true },
   });
 
   const toBackfill = gear.filter((g) => !g.shortId);
@@ -32,7 +32,7 @@ async function main() {
 
   for (const item of toBackfill) {
     // Generate shortId, passing accumulated list so we avoid duplicates
-    const shortId = await generateShortId(item.name, item.category, existingIds);
+  const shortId = await generateShortId(item.name, item.category?.name, existingIds);
     existingIds.push(shortId); // track for subsequent iterations
 
     // Regenerate QR code pointing to /gear/{shortId}

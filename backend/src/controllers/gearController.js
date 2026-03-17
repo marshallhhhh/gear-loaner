@@ -11,7 +11,7 @@ export async function listGear(req, res, next) {
     const { category, status, search } = req.query;
     const where = {};
 
-    if (category) where.category = category;
+    if (category) where.category = { name: category };
     if (status) where.loanStatus = status;
     if (search) {
       where.OR = [
@@ -25,9 +25,12 @@ export async function listGear(req, res, next) {
     const gear = await prisma.gear.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      include: { category: { select: { name: true } } },
     });
 
-    res.json(gear);
+    // Normalize response shape: return `category` as a string (legacy shape)
+    const normalized = gear.map((g) => ({ ...g, category: g.category?.name || null }));
+    res.json(normalized);
   } catch (err) {
     next(err);
   }
@@ -48,6 +51,7 @@ export async function getGear(req, res, next) {
           where: { status: 'ACTIVE' },
           select: { id: true, userId: true, dueDate: true, checkoutDate: true },
         },
+        category: { select: { name: true } },
       },
     });
 
@@ -66,6 +70,9 @@ export async function getGear(req, res, next) {
       }));
     }
 
+    // Normalize category to string for legacy frontend
+    gear.category = gear.category?.name || null;
+
     res.json(gear);
   } catch (err) {
     next(err);
@@ -83,20 +90,46 @@ export async function createGear(req, res, next) {
     // Generate shortId before creating so it can be stored atomically
     const shortId = await generateShortId(name, category);
 
-    const gear = await prisma.gear.create({
-      data: {
-        name,
-        description: description || null,
-        category: category || null,
-        tags: tags || [],
-        // treat empty string or whitespace-only as null so DB stores NULL instead of ""
-        serialNumber: typeof serialNumber === 'string' && serialNumber.trim() !== ''
-          ? serialNumber.trim()
-          : null,
-        defaultLoanDays: defaultLoanDays || 7,
-        shortId,
-      },
-    });
+    // If a category string was provided, ensure there's a Category record
+    let categoryRecord = null;
+    if (category && typeof category === 'string' && category.trim() !== '') {
+      try {
+        categoryRecord = await prisma.category.upsert({
+          where: { name: category },
+          update: {},
+          create: { name: category },
+        });
+      } catch (catErr) {
+        console.error('Category upsert failed during create:', catErr.message);
+      }
+    }
+
+    const createData = {
+      name,
+      description: description || null,
+      tags: tags || [],
+      // treat empty string or whitespace-only as null so DB stores NULL instead of ""
+      serialNumber: typeof serialNumber === 'string' && serialNumber.trim() !== ''
+        ? serialNumber.trim()
+        : null,
+      defaultLoanDays: defaultLoanDays || 7,
+      shortId,
+    };
+
+    if (categoryRecord) {
+      createData.category = { connect: { id: categoryRecord.id } };
+    }
+
+    const gear = await prisma.gear.create({ data: createData });
+
+    // If we have a category record, mirror its name onto the response for the
+    // legacy frontend shape.
+    if (categoryRecord) {
+      gear.category = categoryRecord.name;
+      gear.categoryId = categoryRecord.id;
+    } else {
+      gear.category = null;
+    }
 
     // Generate and store QR code (pointing to /gear/{shortId})
     try {
@@ -132,7 +165,6 @@ export async function updateGear(req, res, next) {
     const data = {};
     if (name !== undefined) data.name = name;
     if (description !== undefined) data.description = description;
-    if (category !== undefined) data.category = category;
     if (tags !== undefined) data.tags = tags;
     if (serialNumber !== undefined) {
       // convert empty string or whitespace-only to null; trim non-empty strings
@@ -143,10 +175,34 @@ export async function updateGear(req, res, next) {
     if (defaultLoanDays !== undefined) data.defaultLoanDays = defaultLoanDays;
     if (loanStatus !== undefined) data.loanStatus = loanStatus;
 
+    // Handle category relation explicitly
+    if (category !== undefined) {
+      if (category === null || (typeof category === 'string' && category.trim() === '')) {
+        // clear relation
+        data.category = { disconnect: true };
+      } else {
+        // ensure category exists and connect
+        try {
+          const catRec = await prisma.category.upsert({
+            where: { name: category },
+            update: {},
+            create: { name: category },
+          });
+          data.category = { connect: { id: catRec.id } };
+        } catch (catErr) {
+          console.error('Category upsert failed on update:', catErr.message);
+        }
+      }
+    }
+
     const gear = await prisma.gear.update({
       where: { id: req.params.id },
       data,
+      include: { category: { select: { name: true } } },
     });
+
+    // Normalize category for response
+    gear.category = gear.category?.name || null;
 
     await logAction({
       userId: req.profile.id,
@@ -239,6 +295,13 @@ export async function reportLost(req, res, next) {
 
 export async function getCategories(req, res, next) {
   try {
+    // Prefer the dedicated Category table if available
+    if (prisma.category) {
+      const cats = await prisma.category.findMany({ select: { name: true }, orderBy: { name: 'asc' } });
+      return res.json(cats.map((c) => c.name));
+    }
+
+    // Fallback for older schema: derive categories from gear table
     const categories = await prisma.gear.findMany({
       where: { category: { not: null } },
       select: { category: true },

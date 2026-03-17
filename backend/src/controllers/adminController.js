@@ -5,7 +5,7 @@ export async function exportLoans(req, res, next) {
   try {
     const loans = await prisma.loan.findMany({
       include: {
-        gearItem: { select: { name: true, serialNumber: true, category: true } },
+        gearItem: { select: { name: true, serialNumber: true, category: { select: { name: true } } } },
         user: { select: { email: true, fullName: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -15,7 +15,7 @@ export async function exportLoans(req, res, next) {
       'Loan ID': l.id,
       'Gear Name': l.gearItem.name,
       'Serial Number': l.gearItem.serialNumber || '',
-      Category: l.gearItem.category || '',
+      Category: l.gearItem.category?.name || '',
       'User Email': l.user.email,
       'User Name': l.user.fullName || '',
       Status: l.status,
@@ -39,13 +39,14 @@ export async function exportGear(req, res, next) {
   try {
     const gear = await prisma.gear.findMany({
       orderBy: { createdAt: 'desc' },
+      include: { category: { select: { name: true } } },
     });
 
     const rows = gear.map((g) => ({
       ID: g.id,
       Name: g.name,
       Description: g.description || '',
-      Category: g.category || '',
+      Category: g.category?.name || '',
       Tags: g.tags.join(', '),
       'Serial Number': g.serialNumber || '',
       Status: g.loanStatus,

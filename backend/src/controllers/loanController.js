@@ -32,13 +32,18 @@ export async function listLoans(req, res, next) {
     const loans = await prisma.loan.findMany({
       where,
       include: {
-        gearItem: { select: { id: true, name: true, category: true } },
+        gearItem: { select: { id: true, name: true, category: { select: { name: true } } } },
         user: { select: { id: true, email: true, fullName: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json(loans);
+    // Normalize gearItem.category to a string
+    const normalized = loans.map((l) => ({
+      ...l,
+      gearItem: { ...l.gearItem, category: l.gearItem.category?.name || null },
+    }));
+    res.json(normalized);
   } catch (err) {
     next(err);
   }
@@ -49,11 +54,15 @@ export async function getMyLoans(req, res, next) {
     const loans = await prisma.loan.findMany({
       where: { userId: req.profile.id },
       include: {
-        gearItem: { select: { id: true, name: true, category: true, qrCodeUrl: true } },
+        gearItem: { select: { id: true, name: true, category: { select: { name: true } }, qrCodeUrl: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
-    res.json(loans);
+    const normalized = loans.map((l) => ({
+      ...l,
+      gearItem: { ...l.gearItem, category: l.gearItem.category?.name || null },
+    }));
+    res.json(normalized);
   } catch (err) {
     next(err);
   }
@@ -134,9 +143,11 @@ export async function checkout(req, res, next) {
 
     const loanWithGear = await prisma.loan.findUnique({
       where: { id: loan.id },
-      include: { gearItem: { select: { id: true, name: true, category: true } } },
+      include: { gearItem: { select: { id: true, name: true, category: { select: { name: true } } } } },
     });
 
+    // Normalize category
+    loanWithGear.gearItem.category = loanWithGear.gearItem.category?.name || null;
     res.status(201).json(loanWithGear);
   } catch (err) {
     next(err);

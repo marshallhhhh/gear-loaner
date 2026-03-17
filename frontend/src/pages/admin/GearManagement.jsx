@@ -24,6 +24,12 @@ export default function GearManagement() {
   const [form, setForm] = useState(emptyForm);
   // shortId of the item currently being edited (read-only display)
   const [editingShortId, setEditingShortId] = useState(null);
+  // show inline input to create a new category
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+
+  // derive a list of existing categories from the gear list
+  const categories = Array.from(new Set(gear.map((g) => g.category).filter(Boolean)));
 
   useEffect(() => {
     fetchGear();
@@ -51,6 +57,9 @@ export default function GearManagement() {
     });
     setEditingId(item.id);
     setEditingShortId(item.shortId || null);
+    // ensure the create-new UI is reset when editing
+    setShowNewCategory(false);
+    setNewCategory('');
     setShowForm(true);
   }
 
@@ -77,6 +86,9 @@ export default function GearManagement() {
       setEditingId(null);
       setEditingShortId(null);
       setForm(emptyForm);
+      // reset create-new UI state
+      setShowNewCategory(false);
+      setNewCategory('');
       fetchGear();
     } catch (err) {
       setError(err.message);
@@ -106,6 +118,9 @@ export default function GearManagement() {
             setForm(emptyForm);
             setEditingId(null);
             setEditingShortId(null);
+            // reset the create-new-category UI when opening the form
+            setShowNewCategory(false);
+            setNewCategory('');
             setShowForm(!showForm);
           }}
           className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
@@ -147,12 +162,46 @@ export default function GearManagement() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
-              <input
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
-              />
+                <label className="block text-sm font-medium mb-1">Category</label>
+                <select
+                  value={showNewCategory ? '__create_new__' : (form.category || '')}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '__create_new__') {
+                      setShowNewCategory(true);
+                      setNewCategory('');
+                      setForm({ ...form, category: '' });
+                    } else {
+                      setShowNewCategory(false);
+                      setNewCategory('');
+                      setForm({ ...form, category: val });
+                    }
+                  }}
+                  className="w-full border rounded-lg px-3 py-2"
+                >
+                  <option value="">—</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  {form.category && !categories.includes(form.category) && (
+                    <option value={form.category}>{form.category}</option>
+                  )}
+                  <option value="__create_new__">Create new…</option>
+                </select>
+
+                {showNewCategory && (
+                  <div className="mt-2">
+                    <input
+                      value={newCategory}
+                      onChange={(e) => {
+                        setNewCategory(e.target.value);
+                        setForm({ ...form, category: e.target.value });
+                      }}
+                      placeholder="New category name"
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                )}
             </div>
             {editingId && (
               <div>
