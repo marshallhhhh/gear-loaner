@@ -12,6 +12,7 @@ enum GearStatus {
   AVAILABLE
   CHECKED_OUT
   LOST
+  RETIRED
 }
 
 enum LoanStatus {
@@ -88,6 +89,7 @@ enum ActionType {
   CHECKOUT
   RETURN
   REPORT_LOST
+  RETIRED
 }
 
 model Action {

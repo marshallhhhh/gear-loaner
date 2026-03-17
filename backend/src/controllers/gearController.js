@@ -162,6 +162,12 @@ export async function updateGear(req, res, next) {
     // shortId is intentionally excluded — it is server-generated and immutable
     const { name, description, category, tags, serialNumber, defaultLoanDays, loanStatus } = req.body;
 
+    // Fetch current gear to detect status changes
+    const existingGear = await prisma.gear.findUnique({
+      where: { id: req.params.id },
+      select: { loanStatus: true },
+    });
+
     const data = {};
     if (name !== undefined) data.name = name;
     if (description !== undefined) data.description = description;
@@ -204,12 +210,19 @@ export async function updateGear(req, res, next) {
     // Normalize category for response
     gear.category = gear.category?.name || null;
 
+    // Determine audit action: use the new status value when loanStatus changed,
+    // otherwise fall back to generic UPDATE.
+    const statusChanged = loanStatus !== undefined && existingGear?.loanStatus !== loanStatus;
+    const auditAction = statusChanged ? loanStatus : 'UPDATE';
+
     await logAction({
       userId: req.profile.id,
-      action: 'UPDATE',
+      action: auditAction,
       entity: 'Gear',
       entityId: gear.id,
-      details: data,
+      details: statusChanged
+        ? { previousStatus: existingGear?.loanStatus, newStatus: loanStatus, ...data }
+        : data,
     });
 
     res.json(gear);
