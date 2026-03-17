@@ -5,6 +5,7 @@ import { hasOverdueLoans, calculateDueDate } from '../services/loanService.js';
 import { sendCheckoutConfirmation, sendReturnConfirmation } from '../services/emailService.js';
 import { logAction } from '../services/auditService.js';
 import { categoryName } from '../services/normalize.js';
+import { parsePagination } from '../utils/pagination.js';
 
 /** Matches the AAA-XXX short ID format */
 const SHORT_ID_RE = /^[A-Za-z]{3}-\d{3}$/;
@@ -30,15 +31,6 @@ async function resolveGearForUpdate(tx, gearItemId) {
     Prisma.sql`SELECT * FROM "Gear" WHERE ${Prisma.raw(column)} = ${value} FOR UPDATE`
   );
   return rows[0] || null;
-}
-
-const MAX_PAGE_SIZE = 200;
-const DEFAULT_PAGE_SIZE = 50;
-
-function parsePagination(query) {
-  const page = Math.max(parseInt(query.page, 10) || 1, 1);
-  const pageSize = Math.min(Math.max(parseInt(query.pageSize, 10) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
-  return { page, pageSize, skip: (page - 1) * pageSize, take: pageSize };
 }
 
 export async function listLoans(req, res, next) {
@@ -201,25 +193,25 @@ export async function returnGear(req, res, next) {
     const loanId = req.params.id;
     const { condition, latitude, longitude, notes } = req.body;
 
-    const loan = await prisma.loan.findUnique({
-      where: { id: loanId },
-      include: { gearItem: true },
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      // Lock the loan row to prevent concurrent returns
+      const [loan] = await tx.$queryRaw(
+        Prisma.sql`SELECT * FROM "Loan" WHERE "id" = ${loanId} FOR UPDATE`
+      );
 
-    if (!loan) {
-      return res.status(404).json({ error: 'Loan not found' });
-    }
+      if (!loan) {
+        throw Object.assign(new Error('Loan not found'), { status: 404 });
+      }
 
-    if (loan.status !== 'ACTIVE') {
-      return res.status(409).json({ error: 'Loan is not active' });
-    }
+      if (loan.status !== 'ACTIVE') {
+        throw Object.assign(new Error('Loan is not active'), { status: 409 });
+      }
 
-    // Members can only return their own loans
-    if (req.profile.role !== 'ADMIN' && loan.userId !== req.profile.id) {
-      return res.status(403).json({ error: 'You can only return your own loans' });
-    }
+      // Members can only return their own loans
+      if (req.profile.role !== 'ADMIN' && loan.userId !== req.profile.id) {
+        throw Object.assign(new Error('You can only return your own loans'), { status: 403 });
+      }
 
-    await prisma.$transaction(async (tx) => {
       await tx.loan.update({
         where: { id: loanId },
         data: {
@@ -228,6 +220,11 @@ export async function returnGear(req, res, next) {
           notes: notes ? `${loan.notes ? loan.notes + '\n' : ''}Return: ${notes}${condition ? ` (Condition: ${condition})` : ''}` : loan.notes,
         },
       });
+
+      // Lock the gear row before updating its status
+      await tx.$queryRaw(
+        Prisma.sql`SELECT "id" FROM "Gear" WHERE "id" = ${loan.gearItemId} FOR UPDATE`
+      );
 
       await tx.gear.update({
         where: { id: loan.gearItemId },
@@ -244,6 +241,14 @@ export async function returnGear(req, res, next) {
           longitude,
         },
       });
+
+      return loan;
+    });
+
+    // Fetch gear name for the confirmation email
+    const gear = await prisma.gear.findUnique({
+      where: { id: result.gearItemId },
+      select: { name: true },
     });
 
     await logAction({
@@ -251,16 +256,19 @@ export async function returnGear(req, res, next) {
       action: 'RETURN',
       entity: 'Loan',
       entityId: loanId,
-      details: { gearItemId: loan.gearItemId, condition },
+      details: { gearItemId: result.gearItemId, condition },
     });
 
     sendReturnConfirmation({
       email: req.profile.email,
-      gearName: loan.gearItem.name,
+      gearName: gear?.name || 'Gear',
     }).catch((err) => logger.error({ err }, 'Return email failed'));
 
     res.json({ message: 'Gear returned successfully' });
   } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ error: err.message });
+    }
     next(err);
   }
 }

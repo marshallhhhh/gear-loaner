@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
+import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import ActionBadge from '../../components/ActionBadge.jsx';
 import HistoryDetailModal from '../../components/HistoryDetailModal.jsx';
 
@@ -353,7 +354,7 @@ export default function GearDetail() {
               )}
               <div className="flex justify-between">
                 <dt className="text-gray-500">Created</dt>
-                <dd className="font-medium">{new Date(gear.createdAt).toLocaleDateString()}</dd>
+                <dd className="font-medium">{formatDate(gear.createdAt)}</dd>
               </div>
             </dl>
           </div>
@@ -394,13 +395,13 @@ export default function GearDetail() {
                   <div className="flex justify-between">
                     <dt className="text-gray-500">Checked Out</dt>
                     <dd className="font-medium">
-                      {new Date(activeLoan.checkoutDate).toLocaleDateString()}
+                      {formatDate(activeLoan.checkoutDate)}
                     </dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-gray-500">Due Date</dt>
                     <dd className={`font-medium ${new Date(activeLoan.dueDate) < new Date() ? 'text-red-600' : ''}`}>
-                      {new Date(activeLoan.dueDate).toLocaleDateString()}
+                      {formatDate(activeLoan.dueDate)}
                       {new Date(activeLoan.dueDate) < new Date() && ' (Overdue)'}
                     </dd>
                   </div>
@@ -448,7 +449,7 @@ export default function GearDetail() {
                 }}
               >
                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                  {new Date(entry.time).toLocaleString()}
+                  {formatDateTime(entry.time)}
                 </td>
                 <td className="px-4 py-3">{entry.user}</td>
                 <td className="px-4 py-3 text-gray-500 font-mono text-xs">{entry.location}</td>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
+import { formatDate } from '../../utils/formatDate.js';
 
 export default function MyLoans() {
   const { getToken } = useAuth();
@@ -86,10 +87,10 @@ export default function MyLoans() {
                   {loan.gearItem.category && (
                     <span className="mr-3">{loan.gearItem.category}</span>
                   )}
-                  <span>Checked out: {new Date(loan.checkoutDate).toLocaleDateString()}</span>
+                  <span>Checked out: {formatDate(loan.checkoutDate)}</span>
                   <span className="mx-2">•</span>
                   <span className={isOverdue(loan) ? 'text-red-600 font-medium' : ''}>
-                    Due: {new Date(loan.dueDate).toLocaleDateString()}
+                    Due: {formatDate(loan.dueDate)}
                   </span>
                 </div>
               </div>
@@ -107,8 +108,8 @@ export default function MyLoans() {
                 <span className="font-medium text-gray-700">{loan.gearItem.name}</span>
                 <span className="mx-2">•</span>
                 <span>
-                  {new Date(loan.checkoutDate).toLocaleDateString()} →{' '}
-                  {loan.returnDate ? new Date(loan.returnDate).toLocaleDateString() : '—'}
+                  {formatDate(loan.checkoutDate)} →{' '}
+                  {loan.returnDate ? formatDate(loan.returnDate) : '—'}
                 </span>
               </div>
             ))}

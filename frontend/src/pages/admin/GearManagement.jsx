@@ -1,23 +1,21 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
+import usePagination from '../../hooks/usePagination.js';
+import PaginationControls from '../../components/PaginationControls.jsx';
 
 export default function GearManagement() {
   const { getToken } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [gear, setGear] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
-  const [fetchError, setFetchError] = useState('');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [pagination, setPagination] = useState({ page: 1, pageSize: 50, total: 0, totalPages: 0 });
   const [categories, setCategories] = useState([]);
   const statusFilter = searchParams.get('status') || '';
 
@@ -26,6 +24,9 @@ export default function GearManagement() {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  const { data: gear, pagination, loading, error: fetchError, fetchPage, refetchCurrentPage } =
+    usePagination('/gear', { extraParams: { status: statusFilter, search: debouncedSearch } });
 
   const emptyForm = {
     name: '',
@@ -43,28 +44,10 @@ export default function GearManagement() {
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategory, setNewCategory] = useState('');
 
-  const fetchGear = useCallback(async (page = 1) => {
-    try {
-      const params = new URLSearchParams();
-      params.set('page', page);
-      params.set('pageSize', '50');
-      if (statusFilter) params.set('status', statusFilter);
-      if (debouncedSearch) params.set('search', debouncedSearch);
-      const result = await api(`/gear?${params}`, { token: await getToken() });
-      setGear(result.data);
-      setPagination(result.pagination);
-      setFetchError('');
-    } catch (err) {
-      setFetchError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken, statusFilter, debouncedSearch]);
-
   // Fetch gear when filters or page change
   useEffect(() => {
-    fetchGear(1);
-  }, [fetchGear]);
+    fetchPage(1);
+  }, [fetchPage]);
 
   // Fetch categories once
   useEffect(() => {
@@ -113,7 +96,7 @@ export default function GearManagement() {
       // reset create-new UI state
       setShowNewCategory(false);
       setNewCategory('');
-      fetchGear(pagination.page);
+      refetchCurrentPage();
       // Refresh categories in case a new one was created
       api('/gear/categories').then(setCategories).catch(() => {});
     } catch (err) {
@@ -128,7 +111,7 @@ export default function GearManagement() {
     try {
       await api(`/gear/${id}`, { method: 'DELETE', token: await getToken() });
       setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
-      fetchGear(pagination.page);
+      refetchCurrentPage();
     } catch (err) {
       alert(err.message);
     }
@@ -409,29 +392,12 @@ export default function GearManagement() {
         </table>
       </div>
 
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-          <span>Showing {gear.length} of {pagination.total} items</span>
-          <div className="flex gap-2">
-            <button
-              disabled={pagination.page <= 1}
-              onClick={() => fetchGear(pagination.page - 1)}
-              className="px-3 py-1 border rounded disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="px-3 py-1">Page {pagination.page} of {pagination.totalPages}</span>
-            <button
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => fetchGear(pagination.page + 1)}
-              className="px-3 py-1 border rounded disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+      <PaginationControls
+        pagination={pagination}
+        onPageChange={fetchPage}
+        shownCount={gear.length}
+        label="items"
+      />
     </div>
   );
 }

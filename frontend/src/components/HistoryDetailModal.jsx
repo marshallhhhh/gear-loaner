@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import ActionBadge from './ActionBadge.jsx';
 import MiniMap from './MiniMap.jsx';
+import { formatDate, formatDateTime } from '../utils/formatDate.js';
 
 /**
  * A shared detail modal for history entries: Checkout, Return, and Reported Lost.
@@ -85,7 +86,7 @@ export default function HistoryDetailModal({ entry, onClose }) {
  */
 function buildRows(action, time, user, location, details) {
   const base = [
-    { label: 'Time', value: new Date(time).toLocaleString() },
+    { label: 'Time', value: formatDateTime(time) },
     { label: 'User', value: user },
     { label: 'Location (GPS)', value: location, mono: true },
   ];
@@ -95,7 +96,7 @@ function buildRows(action, time, user, location, details) {
   if (details.dueDate) {
     extras.push({
       label: 'Due Date',
-      value: new Date(details.dueDate).toLocaleDateString(),
+      value: formatDate(details.dueDate),
       extra: true,
     });
   }
@@ -103,7 +104,7 @@ function buildRows(action, time, user, location, details) {
   if (details.returnedAt) {
     extras.push({
       label: 'Returned At',
-      value: new Date(details.returnedAt).toLocaleString(),
+      value: formatDateTime(details.returnedAt),
       extra: true,
     });
   }

@@ -1,37 +1,22 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
+import usePagination from '../../hooks/usePagination.js';
+import { formatDate } from '../../utils/formatDate.js';
+import PaginationControls from '../../components/PaginationControls.jsx';
 
 export default function LoanHistory() {
   const { getToken } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [loans, setLoans] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState('');
-  const [pagination, setPagination] = useState({ page: 1, pageSize: 50, total: 0, totalPages: 0 });
   const filter = searchParams.get('status') || '';
 
-  const fetchLoans = useCallback(async (page = 1) => {
-    try {
-      const params = new URLSearchParams();
-      params.set('page', page);
-      params.set('pageSize', '50');
-      if (filter) params.set('status', filter);
-      const result = await api(`/loans?${params}`, { token: await getToken() });
-      setLoans(result.data);
-      setPagination(result.pagination);
-      setFetchError('');
-    } catch (err) {
-      setFetchError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken, filter]);
+  const { data: loans, pagination, loading, error: fetchError, fetchPage, refetchCurrentPage } =
+    usePagination('/loans', { extraParams: { status: filter } });
 
   useEffect(() => {
-    fetchLoans(1);
-  }, [fetchLoans]);
+    fetchPage(1);
+  }, [fetchPage]);
 
   async function handleOverride(loanId, action) {
     try {
@@ -44,7 +29,7 @@ export default function LoanHistory() {
         token: await getToken(),
         body,
       });
-      fetchLoans(pagination.page);
+      refetchCurrentPage();
     } catch (err) {
       alert(err.message);
     }
@@ -101,10 +86,10 @@ export default function LoanHistory() {
                   {loan.user.fullName || loan.user.email}
                 </td>
                 <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
-                  {new Date(loan.checkoutDate).toLocaleDateString()}
+                  {formatDate(loan.checkoutDate)}
                 </td>
                 <td className={`px-4 py-3 ${isOverdue(loan) ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                  {new Date(loan.dueDate).toLocaleDateString()}
+                  {formatDate(loan.dueDate)}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -150,29 +135,12 @@ export default function LoanHistory() {
         </table>
       </div>
 
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-          <span>Showing {loans.length} of {pagination.total} loans</span>
-          <div className="flex gap-2">
-            <button
-              disabled={pagination.page <= 1}
-              onClick={() => fetchLoans(pagination.page - 1)}
-              className="px-3 py-1 border rounded disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="px-3 py-1">Page {pagination.page} of {pagination.totalPages}</span>
-            <button
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => fetchLoans(pagination.page + 1)}
-              className="px-3 py-1 border rounded disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+      <PaginationControls
+        pagination={pagination}
+        onPageChange={fetchPage}
+        shownCount={loans.length}
+        label="loans"
+      />
     </div>
   );
 }

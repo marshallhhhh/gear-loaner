@@ -1,14 +1,14 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
+import usePagination from '../../hooks/usePagination.js';
+import PaginationControls from '../../components/PaginationControls.jsx';
+import { formatDate } from '../../utils/formatDate.js';
 
 export default function UserManagement() {
   const { getToken } = useAuth();
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [pagination, setPagination] = useState({ page: 1, pageSize: 50, total: 0, totalPages: 0 });
 
   // Debounce search input
   useEffect(() => {
@@ -16,25 +16,12 @@ export default function UserManagement() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const fetchUsers = useCallback(async (page = 1) => {
-    try {
-      const params = new URLSearchParams();
-      params.set('page', page);
-      params.set('pageSize', '50');
-      if (debouncedSearch) params.set('search', debouncedSearch);
-      const result = await api(`/users?${params}`, { token: await getToken() });
-      setUsers(result.data);
-      setPagination(result.pagination);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken, debouncedSearch]);
+  const { data: users, pagination, loading, fetchPage, refetchCurrentPage } =
+    usePagination('/users', { extraParams: { search: debouncedSearch } });
 
   useEffect(() => {
-    fetchUsers(1);
-  }, [fetchUsers]);
+    fetchPage(1);
+  }, [fetchPage]);
 
   async function toggleActive(userId, currentState) {
     try {
@@ -43,7 +30,7 @@ export default function UserManagement() {
         token: await getToken(),
         body: { isActive: !currentState },
       });
-      fetchUsers(pagination.page);
+      refetchCurrentPage();
     } catch (err) {
       alert(err.message);
     }
@@ -59,7 +46,7 @@ export default function UserManagement() {
         token: await getToken(),
         body: { role: newRole },
       });
-      fetchUsers(pagination.page);
+      refetchCurrentPage();
     } catch (err) {
       alert(err.message);
     }
@@ -123,7 +110,7 @@ export default function UserManagement() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
-                  {new Date(user.createdAt).toLocaleDateString()}
+                  {formatDate(user.createdAt)}
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   <button
@@ -154,29 +141,12 @@ export default function UserManagement() {
         </table>
       </div>
 
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-          <span>Showing {users.length} of {pagination.total} users</span>
-          <div className="flex gap-2">
-            <button
-              disabled={pagination.page <= 1}
-              onClick={() => fetchUsers(pagination.page - 1)}
-              className="px-3 py-1 border rounded disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="px-3 py-1">Page {pagination.page} of {pagination.totalPages}</span>
-            <button
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => fetchUsers(pagination.page + 1)}
-              className="px-3 py-1 border rounded disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+      <PaginationControls
+        pagination={pagination}
+        onPageChange={fetchPage}
+        shownCount={users.length}
+        label="users"
+      />
     </div>
   );
 }
