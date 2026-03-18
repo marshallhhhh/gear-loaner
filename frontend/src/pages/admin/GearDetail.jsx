@@ -6,6 +6,7 @@ import GearStatusBadge from '../../components/GearStatusBadge.jsx';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import ActionBadge from '../../components/ActionBadge.jsx';
 import HistoryDetailModal from '../../components/HistoryDetailModal.jsx';
+import ConfirmModal from '../../components/ConfirmModal.jsx';
 import useGearForm from '../../hooks/useGearForm.js';
 
 /**
@@ -64,6 +65,15 @@ export default function GearDetail() {
   // selected history entry for the detail modal (Checkout, Return, or Reported Lost)
   const [selectedEntry, setSelectedEntry] = useState(null);
 
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    isDangerous: false,
+  });
+
   useEffect(() => {
     fetchDetail();
     fetchCategories();
@@ -117,22 +127,30 @@ export default function GearDetail() {
       gear.loanStatus === 'CHECKED_OUT'
         ? `${label}? This will cancel the active loan on this item.`
         : `${label}?`;
-    if (!confirm(confirmMsg)) return;
 
-    setStatusChanging(true);
-    setError('');
-    try {
-      await api(`/gear/${id}/status`, {
-        method: 'POST',
-        token: await getToken(),
-        body: { newStatus },
-      });
-      fetchDetail();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setStatusChanging(false);
-    }
+    setConfirmModal({
+      isOpen: true,
+      message: confirmMsg,
+      confirmText: label,
+      isDangerous: newStatus === 'LOST' || newStatus === 'RETIRED',
+      onConfirm: async () => {
+        setStatusChanging(true);
+        setError('');
+        try {
+          await api(`/gear/${id}/status`, {
+            method: 'POST',
+            token: await getToken(),
+            body: { newStatus },
+          });
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          fetchDetail();
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setStatusChanging(false);
+        }
+      },
+    });
   }
 
   if (loading) {
@@ -212,7 +230,7 @@ export default function GearDetail() {
           </div>
           {gear.loanStatus === 'CHECKED_OUT' && (
             <p className="text-xs text-gray-500 mt-2">
-              ⚠️ Changing status from Checked Out will cancel the active loan.
+              Changing status from Checked Out will cancel the active loan.
             </p>
           )}
         </div>
@@ -508,6 +526,17 @@ export default function GearDetail() {
 
       {/* Lost Report / Checkout / Return Detail Modal */}
       <HistoryDetailModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        isDangerous={confirmModal.isDangerous}
+        isLoading={statusChanging}
+        onConfirm={() => confirmModal.onConfirm?.()}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+      />
     </div>
   );
 }

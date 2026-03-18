@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
+import ConfirmModal from '../../components/ConfirmModal.jsx';
 import usePagination from '../../hooks/usePagination.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate } from '../../utils/formatDate.js';
@@ -9,6 +10,11 @@ export default function UserManagement() {
   const { getToken } = useAuth();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    message: '',
+    onConfirm: null,
+  });
 
   // Debounce search input
   useEffect(() => {
@@ -43,18 +49,25 @@ export default function UserManagement() {
 
   async function toggleRole(userId, currentRole) {
     const newRole = currentRole === 'ADMIN' ? 'MEMBER' : 'ADMIN';
-    if (!confirm(`Change this user's role to ${newRole}?`)) return;
-
-    try {
-      await api(`/users/${userId}`, {
-        method: 'PUT',
-        token: await getToken(),
-        body: { role: newRole },
-      });
-      refetchCurrentPage();
-    } catch (err) {
-      alert(err.message);
-    }
+    setConfirmModal({
+      isOpen: true,
+      message: `Change this user's role to ${newRole}?`,
+      confirmText: 'Change Role',
+      isDangerous: false,
+      onConfirm: async () => {
+        try {
+          await api(`/users/${userId}`, {
+            method: 'PUT',
+            token: await getToken(),
+            body: { role: newRole },
+          });
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          refetchCurrentPage();
+        } catch (err) {
+          alert(err.message);
+        }
+      },
+    });
   }
 
   if (loading) {
@@ -149,6 +162,16 @@ export default function UserManagement() {
         onPageChange={fetchPage}
         shownCount={users.length}
         label="users"
+      />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        isDangerous={confirmModal.isDangerous}
+        onConfirm={() => confirmModal.onConfirm?.()}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
       />
     </div>
   );
