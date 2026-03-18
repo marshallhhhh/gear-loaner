@@ -46,7 +46,7 @@ export default function GearLanding() {
     try {
       const location = await getLocation();
       const token = await getToken();
-      await api('/loans/checkout', {
+      const updatedGear = await api('/loans/checkout', {
         method: 'POST',
         token,
         body: {
@@ -55,8 +55,8 @@ export default function GearLanding() {
           ...location,
         },
       });
+      setGear(updatedGear);
       setMessage('Gear checked out successfully!');
-      await fetchGear();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -79,13 +79,13 @@ export default function GearLanding() {
         return;
       }
 
-      await api(`/loans/${activeLoan.id}/return`, {
+      const updatedGear = await api(`/loans/${activeLoan.id}/return`, {
         method: 'POST',
         token,
         body: { ...location, condition: 'good' },
       });
+      setGear(updatedGear);
       setMessage('Gear returned successfully!');
-      await fetchGear();
     } catch (err) {
       setError(err.message);
     } finally {
