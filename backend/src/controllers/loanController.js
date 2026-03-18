@@ -3,7 +3,6 @@ import prisma from '../config/prisma.js';
 import logger from '../config/logger.js';
 import { calculateDueDate } from '../services/loanService.js';
 import { sendCheckoutConfirmation, sendReturnConfirmation } from '../services/emailService.js';
-import { logAction } from '../services/auditService.js';
 import { categoryName } from '../services/normalize.js';
 import { parsePagination } from '../utils/pagination.js';
 
@@ -176,15 +175,7 @@ export async function checkout(req, res, next) {
       return { loan: newLoan, updatedGear: gearWithLoans };
     });
 
-    // Fire-and-forget: audit log + email (non-blocking, no await)
-    logAction({
-      userId: req.profile.id,
-      action: 'CHECKOUT',
-      entity: 'Loan',
-      entityId: loan.id,
-      details: { gearItemId: updatedGear.id, dueDate: loan.dueDate },
-    }).catch((err) => logger.error({ err }, 'Checkout audit log failed'));
-
+    // Fire-and-forget: email (non-blocking, no await)
     sendCheckoutConfirmation({
       email: req.profile.email,
       gearName: updatedGear.name,
@@ -279,15 +270,7 @@ export async function returnGear(req, res, next) {
       return { result: loan, updatedGear: gearWithLoans };
     });
 
-    // Fire-and-forget: audit log + email (non-blocking, no await)
-    logAction({
-      userId: req.profile.id,
-      action: 'RETURN',
-      entity: 'Loan',
-      entityId: loanId,
-      details: { gearItemId: result.gearItemId, condition },
-    }).catch((err) => logger.error({ err }, 'Return audit log failed'));
-
+    // Fire-and-forget: email (non-blocking, no await)
     sendReturnConfirmation({
       email: req.profile.email,
       gearName: updatedGear?.name || 'Gear',
@@ -340,13 +323,6 @@ export async function overrideLoan(req, res, next) {
       return updated;
     });
 
-    await logAction({
-      userId: req.profile.id,
-      action: 'OVERRIDE',
-      entity: 'Loan',
-      entityId: loanId,
-      details: data,
-    });
     res.json(loan);
   } catch (err) {
     next(err);

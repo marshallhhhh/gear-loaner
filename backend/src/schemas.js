@@ -29,7 +29,12 @@ export const updateGearSchema = z
     tags: z.array(z.string().min(1).max(50)).max(20).optional(),
     serialNumber: z.string().max(200).nullish(),
     defaultLoanDays: z.number().int().min(1).max(30).optional(),
-    loanStatus: GearStatus.optional(),
+  })
+  .strip();
+
+export const changeGearStatusSchema = z
+  .object({
+    newStatus: GearStatus,
   })
   .strip();
 
@@ -122,15 +127,6 @@ export const listUsersQuerySchema = z
     search: z.string().max(200).optional(),
     role: z.string().max(20).optional(),
     isActive: z.enum(['true', 'false']).optional(),
-    ...paginationParams,
-  })
-  .strip();
-
-export const auditLogQuerySchema = z
-  .object({
-    entity: z.string().max(100).optional(),
-    action: z.string().max(100).optional(),
-    limit: z.string().regex(/^\d+$/, 'limit must be a number').optional(),
     ...paginationParams,
   })
   .strip();

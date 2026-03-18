@@ -1,7 +1,6 @@
 import prisma from '../config/prisma.js';
 import logger from '../config/logger.js';
 import { generateAndStoreQRCode } from '../services/qrCodeService.js';
-import { logAction } from '../services/auditService.js';
 import { generateShortId } from '../services/shortIdService.js';
 import { getActiveReportedLostGearIds } from '../services/reportedLostService.js';
 import { categoryName, normalizeGearCategory } from '../services/normalize.js';
@@ -169,14 +168,6 @@ export async function createGear(req, res, next) {
       logger.error({ err: qrErr }, 'QR code generation failed');
     }
 
-    await logAction({
-      userId: req.profile.id,
-      action: 'CREATE',
-      entity: 'Gear',
-      entityId: gear.id,
-      details: { name },
-    });
-
     res.status(201).json(gear);
   } catch (err) {
     next(err);
@@ -185,15 +176,9 @@ export async function createGear(req, res, next) {
 
 export async function updateGear(req, res, next) {
   try {
-    // shortId is intentionally excluded — it is server-generated and immutable
-    const { name, description, category, tags, serialNumber, defaultLoanDays, loanStatus } =
-      req.body;
-
-    // Fetch current gear to detect status changes
-    const existingGear = await prisma.gear.findUnique({
-      where: { id: req.params.id },
-      select: { loanStatus: true },
-    });
+    // shortId and loanStatus are intentionally excluded — shortId is server-generated
+    // and immutable, loanStatus is changed via the dedicated status transition endpoint
+    const { name, description, category, tags, serialNumber, defaultLoanDays } = req.body;
 
     const data = {};
     if (name !== undefined) data.name = name;
@@ -205,7 +190,6 @@ export async function updateGear(req, res, next) {
         typeof serialNumber === 'string' && serialNumber.trim() !== '' ? serialNumber.trim() : null;
     }
     if (defaultLoanDays !== undefined) data.defaultLoanDays = Number(defaultLoanDays);
-    if (loanStatus !== undefined) data.loanStatus = loanStatus;
 
     // Handle category relation explicitly
     if (category !== undefined) {
@@ -236,35 +220,6 @@ export async function updateGear(req, res, next) {
     // Normalize category for response
     normalizeGearCategory(gear);
 
-    // Determine audit action: use the new status value when loanStatus changed,
-    // otherwise fall back to generic UPDATE.
-    const statusChanged = loanStatus !== undefined && existingGear?.loanStatus !== loanStatus;
-    const auditAction = statusChanged ? loanStatus : 'UPDATE';
-
-    // When an admin changes the status, record an Action so the gear's action
-    // timeline stays consistent with checkout/return/report-lost flows.
-    // This also clears the "reported lost" badge when status is changed.
-    if (statusChanged) {
-      await prisma.action.create({
-        data: {
-          type: 'STATUS_CHANGE',
-          userId: req.profile.id,
-          gearItemId: gear.id,
-          details: { previousStatus: existingGear?.loanStatus, newStatus: loanStatus },
-        },
-      });
-    }
-
-    await logAction({
-      userId: req.profile.id,
-      action: auditAction,
-      entity: 'Gear',
-      entityId: gear.id,
-      details: statusChanged
-        ? { previousStatus: existingGear?.loanStatus, newStatus: loanStatus, ...data }
-        : data,
-    });
-
     res.json(gear);
   } catch (err) {
     next(err);
@@ -285,13 +240,6 @@ export async function deleteGear(req, res, next) {
     }
 
     await prisma.gear.delete({ where: { id: gearId } });
-
-    await logAction({
-      userId: req.profile.id,
-      action: 'DELETE',
-      entity: 'Gear',
-      entityId: gearId,
-    });
 
     res.status(204).end();
   } catch (err) {
@@ -335,16 +283,111 @@ export async function reportLost(req, res, next) {
       },
     });
 
-    await logAction({
-      userId: req.profile?.id || null,
-      action: 'REPORT_LOST',
-      entity: 'Gear',
-      entityId: gearId,
-      details,
-    });
-
     res.json({ message: 'Gear reported as lost. Thank you.' });
   } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Valid admin status transitions and their corresponding ActionType.
+ * Key format: "FROM->TO"
+ */
+const VALID_TRANSITIONS = {
+  'CHECKED_OUT->LOST': 'ADMIN_REPORT_LOST',
+  'CHECKED_OUT->AVAILABLE': 'ADMIN_MADE_AVAILABLE',
+  'CHECKED_OUT->RETIRED': 'ADMIN_RETIRED',
+  'AVAILABLE->LOST': 'ADMIN_REPORT_LOST',
+  'AVAILABLE->RETIRED': 'ADMIN_RETIRED',
+  'LOST->AVAILABLE': 'ADMIN_MADE_AVAILABLE',
+  'LOST->RETIRED': 'ADMIN_RETIRED',
+  'RETIRED->LOST': 'ADMIN_REPORT_LOST',
+  'RETIRED->AVAILABLE': 'ADMIN_UNRETIRED',
+};
+
+export async function changeGearStatus(req, res, next) {
+  try {
+    const gearId = req.params.id;
+    const { newStatus } = req.body;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Lock the gear row
+      const [gear] = await tx.$queryRaw`
+        SELECT * FROM "Gear" WHERE "id" = ${gearId} FOR UPDATE
+      `;
+
+      if (!gear) {
+        throw Object.assign(new Error('Gear not found'), { status: 404 });
+      }
+
+      const transitionKey = `${gear.loanStatus}->${newStatus}`;
+      const actionType = VALID_TRANSITIONS[transitionKey];
+
+      if (!actionType) {
+        throw Object.assign(
+          new Error(`Invalid status transition: ${gear.loanStatus} → ${newStatus}`),
+          { status: 400 },
+        );
+      }
+
+      const operations = [];
+
+      // If transitioning from CHECKED_OUT, cancel the active loan
+      if (gear.loanStatus === 'CHECKED_OUT') {
+        operations.push(
+          tx.loan.updateMany({
+            where: { gearItemId: gearId, status: 'ACTIVE' },
+            data: { status: 'CANCELLED', returnDate: new Date() },
+          }),
+        );
+        // Record loan cancellation action
+        operations.push(
+          tx.action.create({
+            data: {
+              type: 'ADMIN_CANCELLED_LOAN',
+              userId: req.profile.id,
+              gearItemId: gearId,
+              details: { reason: `Admin changed status to ${newStatus}` },
+            },
+          }),
+        );
+      }
+
+      // Update gear status
+      operations.push(
+        tx.gear.update({
+          where: { id: gearId },
+          data: { loanStatus: newStatus },
+        }),
+      );
+
+      // Record the status change action
+      operations.push(
+        tx.action.create({
+          data: {
+            type: actionType,
+            userId: req.profile.id,
+            gearItemId: gearId,
+            details: { previousStatus: gear.loanStatus, newStatus },
+          },
+        }),
+      );
+
+      await Promise.all(operations);
+
+      // Fetch updated gear
+      return tx.gear.findUnique({
+        where: { id: gearId },
+        include: { category: { select: { name: true } } },
+      });
+    });
+
+    normalizeGearCategory(result);
+    res.json(result);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ error: err.message });
+    }
     next(err);
   }
 }

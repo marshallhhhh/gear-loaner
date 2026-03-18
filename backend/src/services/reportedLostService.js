@@ -2,7 +2,7 @@ import prisma from '../config/prisma.js';
 
 /**
  * Returns the set of gear IDs whose most recent Action is REPORT_LOST.
- * Items where a subsequent action (CHECKOUT, RETURN, STATUS_CHANGE, etc.)
+ * Items where a subsequent action (CHECKOUT, RETURN, ADMIN_MADE_AVAILABLE, etc.)
  * occurred are excluded.
  *
  * Uses a single raw query with DISTINCT ON to avoid N+1.

@@ -110,25 +110,28 @@ export async function getDashboardStats(req, res, next) {
 
 export async function getAuditLog(req, res, next) {
   try {
-    const { entity, action, limit } = req.query;
+    const { action } = req.query;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || limit, 10) || 50, 1), 500);
+    const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || req.query.limit, 10) || 50, 1), 500);
     const where = {};
-    if (entity) where.entity = entity;
-    if (action) where.action = action;
+    if (action) where.type = action;
 
-    const [logs, total] = await Promise.all([
-      prisma.auditLog.findMany({
+    const [actions, total] = await Promise.all([
+      prisma.action.findMany({
         where,
         orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, email: true, fullName: true } },
+          gearItem: { select: { id: true, name: true } },
+        },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      prisma.auditLog.count({ where }),
+      prisma.action.count({ where }),
     ]);
 
     res.json({
-      data: logs,
+      data: actions,
       pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
     });
   } catch (err) {
@@ -140,30 +143,24 @@ export async function getAdminGearDetail(req, res, next) {
   try {
     const gearId = req.params.id;
 
-    const [gear, auditLogs] = await Promise.all([
-      prisma.gear.findUnique({
-        where: { id: gearId },
-        include: {
-          category: { select: { name: true } },
-          loans: {
-            include: {
-              user: { select: { id: true, email: true, fullName: true } },
-            },
-            orderBy: { createdAt: 'desc' },
+    const gear = await prisma.gear.findUnique({
+      where: { id: gearId },
+      include: {
+        category: { select: { name: true } },
+        loans: {
+          include: {
+            user: { select: { id: true, email: true, fullName: true } },
           },
-          actions: {
-            include: {
-              user: { select: { id: true, email: true, fullName: true } },
-            },
-            orderBy: { createdAt: 'desc' },
-          },
+          orderBy: { createdAt: 'desc' },
         },
-      }),
-      prisma.auditLog.findMany({
-        where: { entity: 'Gear', entityId: gearId },
-        orderBy: { createdAt: 'desc' },
-      }),
-    ]);
+        actions: {
+          include: {
+            user: { select: { id: true, email: true, fullName: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
 
     if (!gear) {
       return res.status(404).json({ error: 'Gear not found' });
@@ -172,88 +169,32 @@ export async function getAdminGearDetail(req, res, next) {
     // Current active loan
     const activeLoan = gear.loans.find((l) => l.status === 'ACTIVE') || null;
 
-    // Loan-level audit logs (OVERRIDE, etc.)
-    const loanIds = gear.loans.map((l) => l.id);
-    const loanAuditLogs = loanIds.length
-      ? await prisma.auditLog.findMany({
-          where: { entity: 'Loan', entityId: { in: loanIds } },
-          orderBy: { createdAt: 'desc' },
-        })
-      : [];
-
-    // Resolve user info for audit log userIds
-    const auditUserIds = [
-      ...new Set([...auditLogs, ...loanAuditLogs].map((l) => l.userId).filter(Boolean)),
-    ];
-    const auditUsers = auditUserIds.length
-      ? await prisma.profile.findMany({
-          where: { id: { in: auditUserIds } },
-          select: { id: true, email: true, fullName: true },
-        })
-      : [];
-    const userMap = Object.fromEntries(auditUsers.map((u) => [u.id, u]));
-
     // Helper: format location string
     function formatLoc(lat, lng) {
       return lat != null && lng != null ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : '—';
     }
 
     // Build unified history from Action records
-    const history = [];
-
     const actionLabels = {
       CHECKOUT: 'Checkout',
       RETURN: 'Return',
       REPORT_LOST: 'Reported Lost',
-      STATUS_CHANGE: 'Status Change',
+      REPORT_FOUND: 'Reported Found',
+      ADMIN_REPORT_LOST: 'Marked Lost',
+      ADMIN_MADE_AVAILABLE: 'Marked Available',
+      ADMIN_RETIRED: 'Retired',
+      ADMIN_UNRETIRED: 'Unretired',
+      ADMIN_CANCELLED_LOAN: 'Loan Cancelled',
     };
 
-    for (const action of gear.actions) {
-      const entry = {
-        time: action.createdAt,
-        user: action.user?.fullName || action.user?.email || 'Anonymous',
-        userId: action.userId,
-        location: formatLoc(action.latitude, action.longitude),
-        action: actionLabels[action.type] || action.type,
-        details: action.details || null,
-      };
-      // For STATUS_CHANGE, show the target status in the label
-      if (action.type === 'STATUS_CHANGE' && action.details?.newStatus) {
-        entry.action = `Status → ${action.details.newStatus.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}`;
-      }
-      history.push(entry);
-    }
-
-    // Audit logs (gear-level: UPDATE, DELETE, etc.)
-    // Status change values (AVAILABLE, CHECKED_OUT, LOST, RETIRED) are now
-    // recorded as Action records, so skip them here to avoid duplicates.
-    const STATUS_VALUES = new Set(['AVAILABLE', 'CHECKED_OUT', 'LOST', 'RETIRED']);
-    for (const log of auditLogs) {
-      const u = log.userId ? userMap[log.userId] : null;
-      if (log.action === 'CREATE' || log.action === 'REPORT_LOST' || STATUS_VALUES.has(log.action))
-        continue;
-      history.push({
-        time: log.createdAt,
-        user: u?.fullName || u?.email || 'System',
-        userId: log.userId,
-        location: '—',
-        action: log.action,
-      });
-    }
-
-    // Loan-level audit logs (only actions not already covered by Action model)
-    for (const log of loanAuditLogs) {
-      // CHECKOUT and RETURN are now in the Action model
-      if (['CHECKOUT', 'RETURN'].includes(log.action)) continue;
-      const u = log.userId ? userMap[log.userId] : null;
-      history.push({
-        time: log.createdAt,
-        user: u?.fullName || u?.email || 'System',
-        userId: log.userId,
-        location: '—',
-        action: log.action,
-      });
-    }
+    const history = gear.actions.map((action) => ({
+      time: action.createdAt,
+      user: action.user?.fullName || action.user?.email || 'Anonymous',
+      userId: action.userId,
+      location: formatLoc(action.latitude, action.longitude),
+      action: actionLabels[action.type] || action.type,
+      details: action.details || null,
+    }));
 
     // Sort by time descending
     history.sort((a, b) => new Date(b.time) - new Date(a.time));
