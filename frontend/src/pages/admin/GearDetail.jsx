@@ -8,6 +8,30 @@ import ActionBadge from '../../components/ActionBadge.jsx';
 import HistoryDetailModal from '../../components/HistoryDetailModal.jsx';
 import useGearForm from '../../hooks/useGearForm.js';
 
+/**
+ * Valid admin status transitions.
+ * Key: current status → array of { newStatus, label, colorClass }
+ */
+const STATUS_TRANSITIONS = {
+  CHECKED_OUT: [
+    { newStatus: 'AVAILABLE', label: 'Make Available', colorClass: 'bg-green-600 hover:bg-green-700 text-white' },
+    { newStatus: 'LOST', label: 'Report Lost', colorClass: 'bg-red-600 hover:bg-red-700 text-white' },
+    { newStatus: 'RETIRED', label: 'Retire', colorClass: 'bg-gray-600 hover:bg-gray-700 text-white' },
+  ],
+  AVAILABLE: [
+    { newStatus: 'LOST', label: 'Report Lost', colorClass: 'bg-red-600 hover:bg-red-700 text-white' },
+    { newStatus: 'RETIRED', label: 'Retire', colorClass: 'bg-gray-600 hover:bg-gray-700 text-white' },
+  ],
+  LOST: [
+    { newStatus: 'AVAILABLE', label: 'Make Available', colorClass: 'bg-green-600 hover:bg-green-700 text-white' },
+    { newStatus: 'RETIRED', label: 'Retire', colorClass: 'bg-gray-600 hover:bg-gray-700 text-white' },
+  ],
+  RETIRED: [
+    { newStatus: 'AVAILABLE', label: 'Make Available', colorClass: 'bg-green-600 hover:bg-green-700 text-white' },
+    { newStatus: 'LOST', label: 'Report Lost', colorClass: 'bg-red-600 hover:bg-red-700 text-white' },
+  ],
+};
+
 export default function GearDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -32,9 +56,10 @@ export default function GearDetail() {
     buildBody,
     handleCategoryChange,
     handleNewCategoryInput,
-  } = useGearForm({ serialNumber: '', loanStatus: 'AVAILABLE' });
+  } = useGearForm({ serialNumber: '' });
 
   const [categories, setCategories] = useState([]);
+  const [statusChanging, setStatusChanging] = useState(false);
 
   // selected history entry for the detail modal (Checkout, Return, or Reported Lost)
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -84,6 +109,29 @@ export default function GearDetail() {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleStatusChange(newStatus, label) {
+    const confirmMsg =
+      gear.loanStatus === 'CHECKED_OUT'
+        ? `${label}? This will cancel the active loan on this item.`
+        : `${label}?`;
+    if (!confirm(confirmMsg)) return;
+
+    setStatusChanging(true);
+    setError('');
+    try {
+      await api(`/gear/${id}/status`, {
+        method: 'POST',
+        token: await getToken(),
+        body: { newStatus },
+      });
+      fetchDetail();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setStatusChanging(false);
     }
   }
 
@@ -145,6 +193,30 @@ export default function GearDetail() {
           )}
         </div>
       </div>
+
+      {/* Status Action Buttons */}
+      {!editing && STATUS_TRANSITIONS[gear.loanStatus] && (
+        <div className="bg-white rounded-xl shadow p-4 mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Status Actions</h3>
+          <div className="flex flex-wrap gap-2">
+            {STATUS_TRANSITIONS[gear.loanStatus].map(({ newStatus, label, colorClass }) => (
+              <button
+                key={newStatus}
+                onClick={() => handleStatusChange(newStatus, label)}
+                disabled={statusChanging}
+                className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 ${colorClass}`}
+              >
+                {statusChanging ? '…' : label}
+              </button>
+            ))}
+          </div>
+          {gear.loanStatus === 'CHECKED_OUT' && (
+            <p className="text-xs text-gray-500 mt-2">
+              ⚠️ Changing status from Checked Out will cancel the active loan.
+            </p>
+          )}
+        </div>
+      )}
 
       {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{error}</div>}
 
@@ -211,19 +283,6 @@ export default function GearDetail() {
                 onChange={(e) => setForm({ ...form, defaultLoanDays: e.target.value })}
                 className="w-full border rounded-lg px-3 py-2"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                value={form.loanStatus}
-                onChange={(e) => setForm({ ...form, loanStatus: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="AVAILABLE">Available</option>
-                <option value="CHECKED_OUT">Checked Out</option>
-                <option value="LOST">Lost</option>
-                <option value="RETIRED">Retired</option>
-              </select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Short ID</label>
@@ -408,12 +467,14 @@ export default function GearDetail() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {history.map((entry, i) => (
+            {history.map((entry, i) => {
+              const clickable = ['Reported Lost', 'Checkout', 'Return', 'Marked Lost', 'Marked Available', 'Retired', 'Unretired', 'Loan Cancelled'].includes(entry.action);
+              return (
               <tr
                 key={i}
-                className={`hover:bg-gray-50 ${['Reported Lost', 'Checkout', 'Return'].includes(entry.action) ? 'cursor-pointer' : ''}`}
+                className={`hover:bg-gray-50 ${clickable ? 'cursor-pointer' : ''}`}
                 onClick={() => {
-                  if (['Reported Lost', 'Checkout', 'Return'].includes(entry.action)) {
+                  if (clickable) {
                     setSelectedEntry(entry);
                   }
                 }}
@@ -425,16 +486,15 @@ export default function GearDetail() {
                 <td className="px-4 py-3 text-gray-500 font-mono text-xs">{entry.location}</td>
                 <td className="px-4 py-3">
                   <ActionBadge action={entry.action} />
-                  {(entry.action === 'Reported Lost' ||
-                    entry.action === 'Checkout' ||
-                    entry.action === 'Return') && (
+                  {clickable && (
                     <span className="ml-2 text-xs text-gray-400 hover:text-gray-600">
                       View details →
                     </span>
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {history.length === 0 && (
               <tr>
                 <td colSpan={4} className="text-center py-8 text-gray-400">
