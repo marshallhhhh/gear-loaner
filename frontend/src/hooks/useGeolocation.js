@@ -3,7 +3,7 @@
  *
  * @param {{ required?: boolean }} opts
  *   - required=true  → rejects if permission denied (default, used by checkout/return)
- *   - required=false → resolves null if unavailable or denied (used by report-lost)
+ *   - required=false → resolves null if unavailable or denied (used by report-found)
  */
 export default function useGeolocation({ required = true } = {}) {
   async function getLocation() {

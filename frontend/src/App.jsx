@@ -6,7 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 const Login = lazy(() => import('./pages/auth/Login.jsx'));
 const SignUp = lazy(() => import('./pages/auth/SignUp.jsx'));
 const GearLanding = lazy(() => import('./pages/public/GearLanding.jsx'));
-const ReportLost = lazy(() => import('./pages/public/ReportLost.jsx'));
+const ReportFound = lazy(() => import('./pages/public/ReportFound.jsx'));
 const ScanPage = lazy(() => import('./pages/public/ScanPage.jsx'));
 const MyLoans = lazy(() => import('./pages/member/MyLoans.jsx'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard.jsx'));
@@ -62,7 +62,7 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/gear/:id" element={<GearLanding />} />
-            <Route path="/gear/:id/report-lost" element={<ReportLost />} />
+            <Route path="/gear/:id/report-found" element={<ReportFound />} />
 
             {/* Member (authenticated) */}
             <Route

@@ -2,7 +2,7 @@ import prisma from '../config/prisma.js';
 import logger from '../config/logger.js';
 import { generateAndStoreQRCode } from '../services/qrCodeService.js';
 import { generateShortId } from '../services/shortIdService.js';
-import { getActiveReportedLostGearIds } from '../services/reportedLostService.js';
+import { getActiveReportedFoundGearIds } from '../services/reportedFoundService.js';
 import { categoryName, normalizeGearCategory } from '../services/normalize.js';
 import { parsePagination } from '../utils/pagination.js';
 
@@ -15,17 +15,17 @@ export async function listGear(req, res, next) {
     const { page, pageSize, skip, take } = parsePagination(req.query);
     const where = {};
 
-    // Only compute reported-lost set when the caller needs it:
-    // 1. Filtering by REPORTED_LOST status, or
-    // 2. Admin users who see the reportedLost badge on every item
-    const needReportedLost = status === 'REPORTED_LOST' || req.profile?.role === 'ADMIN';
-    const activeReportedLostIds = needReportedLost
-      ? await getActiveReportedLostGearIds()
+    // Only compute reported-found set when the caller needs it:
+    // 1. Filtering by REPORTED_FOUND status, or
+    // 2. Admin users who see the reportedFound badge on every item
+    const needReportedFound = status === 'REPORTED_FOUND' || req.profile?.role === 'ADMIN';
+    const activeReportedFoundIds = needReportedFound
+      ? await getActiveReportedFoundGearIds()
       : new Set();
 
-    // For the special REPORTED_LOST filter, show only actively-reported items
-    if (status === 'REPORTED_LOST') {
-      where.id = { in: [...activeReportedLostIds] };
+    // For the special REPORTED_FOUND filter, show only actively-reported items
+    if (status === 'REPORTED_FOUND') {
+      where.id = { in: [...activeReportedFoundIds] };
       // Exclude items already confirmed LOST by admin
       where.loanStatus = { not: 'LOST' };
     } else if (status) {
@@ -57,7 +57,7 @@ export async function listGear(req, res, next) {
     const data = gear.map((g) => ({
       ...g,
       category: categoryName(g.category),
-      reportedLost: activeReportedLostIds.has(g.id),
+      reportedFound: activeReportedFoundIds.has(g.id),
     }));
     res.json({
       data,
@@ -247,7 +247,7 @@ export async function deleteGear(req, res, next) {
   }
 }
 
-export async function reportLost(req, res, next) {
+export async function reportFound(req, res, next) {
   try {
     const { contactInfo, notes, latitude, longitude } = req.body;
     const gearId = req.params.id;
@@ -257,24 +257,16 @@ export async function reportLost(req, res, next) {
       return res.status(404).json({ error: 'Gear not found' });
     }
 
-    // Only admins can actually change gear status to LOST
-    if (req.profile?.role === 'ADMIN') {
-      await prisma.gear.update({
-        where: { id: gearId },
-        data: { loanStatus: 'LOST' },
-      });
-    }
-
     const details = { contactInfo, notes };
     if (latitude != null && longitude != null) {
       details.latitude = latitude;
       details.longitude = longitude;
     }
 
-    // Record the REPORT_LOST action (always, regardless of role)
+    // Record the REPORT_FOUND action (always, regardless of role)
     await prisma.action.create({
       data: {
-        type: 'REPORT_LOST',
+        type: 'REPORT_FOUND',
         userId: req.profile?.id || null,
         gearItemId: gearId,
         latitude: latitude ?? null,
@@ -283,7 +275,7 @@ export async function reportLost(req, res, next) {
       },
     });
 
-    res.json({ message: 'Gear reported as lost. Thank you.' });
+    res.json({ message: 'Gear reported as found. Thank you.' });
   } catch (err) {
     next(err);
   }

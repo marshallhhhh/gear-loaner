@@ -4,7 +4,7 @@ import MiniMap from './MiniMap.jsx';
 import { formatDate, formatDateTime } from '../utils/formatDate.js';
 
 /**
- * A shared detail modal for history entries: Checkout, Return, and Reported Lost.
+ * A shared detail modal for history entries: Checkout, Return, and Reported Found.
  *
  * @param {{ entry: object, onClose: () => void }} props
  */

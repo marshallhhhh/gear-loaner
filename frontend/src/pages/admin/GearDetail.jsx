@@ -41,6 +41,7 @@ export default function GearDetail() {
   const [gear, setGear] = useState(null);
   const [activeLoan, setActiveLoan] = useState(null);
   const [history, setHistory] = useState([]);
+  const [isReportedFound, setIsReportedFound] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState('');
@@ -95,6 +96,7 @@ export default function GearDetail() {
       setGear(data.gear);
       setActiveLoan(data.activeLoan);
       setHistory(data.history);
+      setIsReportedFound(data.isReportedFound ?? false);
 
       populateForm(data.gear);
     } catch (err) {
@@ -102,6 +104,31 @@ export default function GearDetail() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleMarkFound() {
+    setConfirmModal({
+      isOpen: true,
+      message: 'Mark this reported-found alert as resolved? The item will no longer appear in the Reported Found list.',
+      confirmText: 'Mark Found',
+      isDangerous: false,
+      onConfirm: async () => {
+        setStatusChanging(true);
+        setError('');
+        try {
+          await api(`/admin/gear/${id}/mark-found`, {
+            method: 'POST',
+            token: await getToken(),
+          });
+          setConfirmModal((m) => ({ ...m, isOpen: false }));
+          fetchDetail();
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setStatusChanging(false);
+        }
+      },
+    });
   }
 
   async function handleSave(e) {
@@ -213,11 +240,11 @@ export default function GearDetail() {
       </div>
 
       {/* Status Action Buttons */}
-      {!editing && STATUS_TRANSITIONS[gear.loanStatus] && (
+      {!editing && (STATUS_TRANSITIONS[gear.loanStatus] || isReportedFound) && (
         <div className="bg-white rounded-xl shadow p-4 mb-6">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Status Actions</h3>
           <div className="flex flex-wrap gap-2">
-            {STATUS_TRANSITIONS[gear.loanStatus].map(({ newStatus, label, colorClass }) => (
+            {STATUS_TRANSITIONS[gear.loanStatus]?.map(({ newStatus, label, colorClass }) => (
               <button
                 key={newStatus}
                 onClick={() => handleStatusChange(newStatus, label)}
@@ -227,10 +254,24 @@ export default function GearDetail() {
                 {statusChanging ? '…' : label}
               </button>
             ))}
+            {isReportedFound && (
+              <button
+                onClick={handleMarkFound}
+                disabled={statusChanging}
+                className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {statusChanging ? '…' : 'Mark Found'}
+              </button>
+            )}
           </div>
           {gear.loanStatus === 'CHECKED_OUT' && (
             <p className="text-xs text-gray-500 mt-2">
               Changing status from Checked Out will cancel the active loan.
+            </p>
+          )}
+          {isReportedFound && (
+            <p className="text-xs text-amber-600 mt-2">
+              This item was reported found
             </p>
           )}
         </div>
@@ -486,7 +527,7 @@ export default function GearDetail() {
           </thead>
           <tbody className="divide-y">
             {history.map((entry, i) => {
-              const clickable = ['Reported Lost', 'Checkout', 'Return', 'Marked Lost', 'Marked Available', 'Retired', 'Unretired', 'Loan Cancelled'].includes(entry.action);
+              const clickable = ['Reported Found', 'Checkout', 'Return', 'Marked Lost', 'Marked Available', 'Retired', 'Unretired', 'Loan Cancelled'].includes(entry.action);
               return (
               <tr
                 key={i}
@@ -524,7 +565,7 @@ export default function GearDetail() {
         </table>
       </div>
 
-      {/* Lost Report / Checkout / Return Detail Modal */}
+      {/* Found Report / Checkout / Return Detail Modal */}
       <HistoryDetailModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
 
       {/* Confirm Modal */}

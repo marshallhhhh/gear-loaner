@@ -1,7 +1,8 @@
 import prisma from '../config/prisma.js';
 import { stringify } from 'csv-stringify/sync';
-import { getActiveReportedLostGearIds } from '../services/reportedLostService.js';
+import { getActiveReportedFoundGearIds } from '../services/reportedFoundService.js';
 import { categoryName, normalizeGearCategory } from '../services/normalize.js';
+import logger from '../config/logger.js';
 
 export async function exportLoans(req, res, next) {
   try {
@@ -81,15 +82,14 @@ export async function getDashboardStats(req, res, next) {
         prisma.profile.count(),
       ]);
 
-    // Only count items whose most recent Action is REPORT_LOST and not yet
-    // confirmed LOST by an admin.
-    const activeReportedLostIds = await getActiveReportedLostGearIds();
+    // Only count items whose most recent Action is REPORT_FOUND
+    const activeReportedFoundIds = await getActiveReportedFoundGearIds();
     const confirmedLostIds = new Set(
       (await prisma.gear.findMany({ where: { loanStatus: 'LOST' }, select: { id: true } })).map(
         (g) => g.id,
       ),
     );
-    const reportedLost = [...activeReportedLostIds].filter(
+    const reportedFound = [...activeReportedFoundIds].filter(
       (id) => !confirmedLostIds.has(id),
     ).length;
 
@@ -98,7 +98,7 @@ export async function getDashboardStats(req, res, next) {
       availableGear,
       checkedOut,
       lost,
-      reportedLost,
+      reportedFound,
       activeLoans,
       overdueLoans,
       totalUsers,
@@ -185,6 +185,7 @@ export async function getAdminGearDetail(req, res, next) {
       ADMIN_RETIRED: 'Retired',
       ADMIN_UNRETIRED: 'Unretired',
       ADMIN_CANCELLED_LOAN: 'Loan Cancelled',
+      ADMIN_MARK_FOUND: 'Marked Found',
     };
 
     const history = gear.actions.map((action) => ({
@@ -202,11 +203,47 @@ export async function getAdminGearDetail(req, res, next) {
     // Normalize category relation to string (legacy frontend shape)
     normalizeGearCategory(gear);
 
+    // Check if there is a pending reported-found alert for this gear
+    const activeReportedFoundIds = await getActiveReportedFoundGearIds();
+    const isReportedFound = activeReportedFoundIds.has(gearId);
+
     res.json({
       gear,
       activeLoan,
       history,
+      isReportedFound,
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function markFound(req, res, next) {
+  try {
+    const gearId = req.params.id;
+
+    const gear = await prisma.gear.findUnique({ where: { id: gearId } });
+    if (!gear) {
+      return res.status(404).json({ error: 'Gear not found' });
+    }
+
+    // Verify there is actually a pending reported-found alert
+    const activeReportedFoundIds = await getActiveReportedFoundGearIds();
+    if (!activeReportedFoundIds.has(gearId)) {
+      return res.status(400).json({ error: 'No active reported-found alert for this item' });
+    }
+
+    await prisma.action.create({
+      data: {
+        type: 'ADMIN_MARK_FOUND',
+        userId: req.profile.id,
+        gearItemId: gearId,
+      },
+    });
+
+    logger.info({ gearId, adminId: req.profile.id }, 'Admin dismissed reported-found alert');
+
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }

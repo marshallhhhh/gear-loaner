@@ -210,7 +210,7 @@ export default function GearManagement() {
           <option value="AVAILABLE">Available</option>
           <option value="CHECKED_OUT">Checked Out</option>
           <option value="LOST">Lost</option>
-          <option value="REPORTED_LOST">Reported Lost</option>
+          <option value="REPORTED_FOUND">Reported Found</option>
           <option value="RETIRED">Retired</option>
         </select>
       </div>
@@ -361,7 +361,7 @@ export default function GearManagement() {
                   {item.shortId || '—'}
                 </td>
                 <td className="px-4 py-3">
-                  <GearStatusBadge status={item.loanStatus} reportedLost={item.reportedLost} />
+                  <GearStatusBadge status={item.loanStatus} reportedFound={item.reportedFound} />
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   <button
