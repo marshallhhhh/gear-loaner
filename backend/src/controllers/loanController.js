@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../config/prisma.js';
 import logger from '../config/logger.js';
-import { hasOverdueLoans, calculateDueDate } from '../services/loanService.js';
+import { calculateDueDate } from '../services/loanService.js';
 import { sendCheckoutConfirmation, sendReturnConfirmation } from '../services/emailService.js';
 import { logAction } from '../services/auditService.js';
 import { categoryName } from '../services/normalize.js';
@@ -108,23 +108,23 @@ export async function checkout(req, res, next) {
   try {
     const { gearItemId, durationDays, latitude, longitude, notes } = req.body;
 
-    // Check for overdue loans (outside transaction — read-only check)
-    if (await hasOverdueLoans(req.profile.id)) {
-      return res.status(403).json({
-        error: 'You have overdue items. Please return them before checking out new gear.',
-      });
-    }
+    // Create loan and update gear status in a single transaction with row-level lock.
+    // The overdue-loans check is inside the transaction to save a DB round-trip.
+    const { loan, updatedGear } = await prisma.$transaction(async (tx) => {
+      // Run overdue check and gear lock concurrently — they touch different rows
+      const [overdueCount, lockedGear] = await Promise.all([
+        tx.loan.count({
+          where: { userId: req.profile.id, status: 'ACTIVE', dueDate: { lt: new Date() } },
+        }),
+        resolveGearForUpdate(tx, gearItemId),
+      ]);
 
-    // Resolve gear ID (shortId → UUID) outside transaction for early 404
-    const gearPrecheck = await resolveGear(gearItemId);
-    if (!gearPrecheck) {
-      return res.status(404).json({ error: 'Gear not found' });
-    }
-
-    // Create loan and update gear status in a transaction with row-level lock
-    const { loan, gear } = await prisma.$transaction(async (tx) => {
-      // Lock the gear row to prevent concurrent checkouts
-      const lockedGear = await resolveGearForUpdate(tx, gearItemId);
+      if (overdueCount > 0) {
+        throw Object.assign(
+          new Error('You have overdue items. Please return them before checking out new gear.'),
+          { status: 403 },
+        );
+      }
 
       if (!lockedGear) {
         throw Object.assign(new Error('Gear not found'), { status: 404 });
@@ -135,59 +135,75 @@ export async function checkout(req, res, next) {
 
       const dueDate = calculateDueDate(durationDays, lockedGear.defaultLoanDays);
 
-      const newLoan = await tx.loan.create({
-        data: {
-          gearItemId: lockedGear.id,
-          userId: req.profile.id,
-          dueDate,
-          notes: notes || null,
-        },
-      });
+      // Create the loan, update gear status, and record the action concurrently
+      const [newLoan] = await Promise.all([
+        tx.loan.create({
+          data: {
+            gearItemId: lockedGear.id,
+            userId: req.profile.id,
+            dueDate,
+            notes: notes || null,
+          },
+        }),
+        tx.gear.update({
+          where: { id: lockedGear.id },
+          data: { loanStatus: 'CHECKED_OUT' },
+        }),
+        tx.action.create({
+          data: {
+            type: 'CHECKOUT',
+            userId: req.profile.id,
+            gearItemId: lockedGear.id,
+            latitude,
+            longitude,
+          },
+        }),
+      ]);
 
-      await tx.gear.update({
+      // Fetch the updated gear with active loans inside the transaction
+      // to avoid an extra round-trip after the transaction commits
+      const gearWithLoans = await tx.gear.findUnique({
         where: { id: lockedGear.id },
-        data: { loanStatus: 'CHECKED_OUT' },
-      });
-
-      // Record checkout action with location
-      await tx.action.create({
-        data: {
-          type: 'CHECKOUT',
-          userId: req.profile.id,
-          gearItemId: lockedGear.id,
-          latitude,
-          longitude,
+        include: {
+          loans: {
+            where: { status: 'ACTIVE' },
+            select: { id: true, userId: true, dueDate: true, checkoutDate: true },
+          },
+          category: { select: { name: true } },
         },
       });
 
-      return { loan: newLoan, gear: lockedGear };
+      return { loan: newLoan, updatedGear: gearWithLoans };
     });
 
-    await logAction({
+    // Fire-and-forget: audit log + email (non-blocking, no await)
+    logAction({
       userId: req.profile.id,
       action: 'CHECKOUT',
       entity: 'Loan',
       entityId: loan.id,
-      details: { gearItemId: gear.id, dueDate: loan.dueDate },
-    });
+      details: { gearItemId: updatedGear.id, dueDate: loan.dueDate },
+    }).catch((err) => logger.error({ err }, 'Checkout audit log failed'));
 
-    // Send confirmation email (non-blocking)
     sendCheckoutConfirmation({
       email: req.profile.email,
-      gearName: gear.name,
+      gearName: updatedGear.name,
       dueDate: loan.dueDate,
     }).catch((err) => logger.error({ err }, 'Checkout email failed'));
 
-    const loanWithGear = await prisma.loan.findUnique({
-      where: { id: loan.id },
-      include: {
-        gearItem: { select: { id: true, name: true, category: { select: { name: true } } } },
-      },
-    });
+    // Redact user IDs from loans for non-admin users
+    if (updatedGear.loans) {
+      updatedGear.loans = updatedGear.loans.map(({ id, userId, dueDate, checkoutDate }) => ({
+        id,
+        dueDate,
+        checkoutDate,
+        isCurrentUserLoan: userId === req.profile.id,
+      }));
+    }
 
     // Normalize category
-    loanWithGear.gearItem.category = categoryName(loanWithGear.gearItem.category);
-    res.status(201).json(loanWithGear);
+    updatedGear.category = categoryName(updatedGear.category);
+    res.status(201).json(updatedGear);
   } catch (err) {
     // Surface custom status codes from within the transaction
     if (err.status) {
@@ -202,7 +218,7 @@ export async function returnGear(req, res, next) {
     const loanId = req.params.id;
     const { condition, latitude, longitude, notes } = req.body;
 
-    const result = await prisma.$transaction(async (tx) => {
+    const { result, updatedGear } = await prisma.$transaction(async (tx) => {
       // Lock the loan row to prevent concurrent returns
       const [loan] = await tx.$queryRaw(
         Prisma.sql`SELECT * FROM "Loan" WHERE "id" = ${loanId} FOR UPDATE`,
@@ -221,61 +237,75 @@ export async function returnGear(req, res, next) {
         throw Object.assign(new Error('You can only return your own loans'), { status: 403 });
       }
 
-      await tx.loan.update({
-        where: { id: loanId },
-        data: {
-          status: 'RETURNED',
-          returnDate: new Date(),
-          notes: notes
-            ? `${loan.notes ? loan.notes + '\n' : ''}Return: ${notes}${condition ? ` (Condition: ${condition})` : ''}`
-            : loan.notes,
-        },
-      });
+      // Update loan, gear status, and record action concurrently
+      await Promise.all([
+        tx.loan.update({
+          where: { id: loanId },
+          data: {
+            status: 'RETURNED',
+            returnDate: new Date(),
+            notes: notes
+              ? `${loan.notes ? loan.notes + '\n' : ''}Return: ${notes}${condition ? ` (Condition: ${condition})` : ''}`
+              : loan.notes,
+          },
+        }),
+        tx.gear.update({
+          where: { id: loan.gearItemId },
+          data: { loanStatus: 'AVAILABLE' },
+        }),
+        tx.action.create({
+          data: {
+            type: 'RETURN',
+            userId: req.profile.id,
+            gearItemId: loan.gearItemId,
+            latitude,
+            longitude,
+          },
+        }),
+      ]);
 
-      // Lock the gear row before updating its status
-      await tx.$queryRaw(
-        Prisma.sql`SELECT "id" FROM "Gear" WHERE "id" = ${loan.gearItemId} FOR UPDATE`,
-      );
-
-      await tx.gear.update({
+      // Fetch updated gear inside the transaction to avoid an extra round-trip
+      const gearWithLoans = await tx.gear.findUnique({
         where: { id: loan.gearItemId },
-        data: { loanStatus: 'AVAILABLE' },
-      });
-
-      // Record return action with location
-      await tx.action.create({
-        data: {
-          type: 'RETURN',
-          userId: req.profile.id,
-          gearItemId: loan.gearItemId,
-          latitude,
-          longitude,
+        include: {
+          loans: {
+            where: { status: 'ACTIVE' },
+            select: { id: true, userId: true, dueDate: true, checkoutDate: true },
+          },
+          category: { select: { name: true } },
         },
       });
 
-      return loan;
+      return { result: loan, updatedGear: gearWithLoans };
     });
 
-    // Fetch gear name for the confirmation email
-    const gear = await prisma.gear.findUnique({
-      where: { id: result.gearItemId },
-      select: { name: true },
-    });
-
-    await logAction({
+    // Fire-and-forget: audit log + email (non-blocking, no await)
+    logAction({
       userId: req.profile.id,
       action: 'RETURN',
       entity: 'Loan',
       entityId: loanId,
       details: { gearItemId: result.gearItemId, condition },
-    });
+    }).catch((err) => logger.error({ err }, 'Return audit log failed'));
 
     sendReturnConfirmation({
       email: req.profile.email,
-      gearName: gear?.name || 'Gear',
+      gearName: updatedGear?.name || 'Gear',
     }).catch((err) => logger.error({ err }, 'Return email failed'));
 
-    res.json({ message: 'Gear returned successfully' });
+    // Redact user IDs from loans for non-admin users
+    if (updatedGear.loans) {
+      updatedGear.loans = updatedGear.loans.map(({ id, userId, dueDate, checkoutDate }) => ({
+        id,
+        dueDate,
+        checkoutDate,
+        isCurrentUserLoan: userId === req.profile.id,
+      }));
+    }
+
+    // Normalize category
+    updatedGear.category = categoryName(updatedGear.category);
+    res.json(updatedGear);
   } catch (err) {
     if (err.status) {
       return res.status(err.status).json({ error: err.message });
