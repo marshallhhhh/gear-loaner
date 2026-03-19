@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
 import { formatDate } from '../../utils/formatDate.js';
+import { CameraIcon } from '@heroicons/react/24/outline';
 
 export default function MyLoans() {
   const { getToken } = useAuth();
@@ -43,9 +44,10 @@ export default function MyLoans() {
         <h1 className="text-2xl font-bold">My Loans</h1>
         <Link
           to="/scan"
-          className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center"
         >
-          📷 Scan to Checkout
+          <CameraIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+          Scan
         </Link>
       </div>
 
@@ -70,19 +72,20 @@ export default function MyLoans() {
                   isOverdue(loan) ? 'border-red-500' : 'border-primary-500'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <Link
-                    to={`/gear/${loan.gearItem.id}`}
-                    className="font-medium text-primary-700 hover:underline"
-                  >
+                <Link
+                  to={`/gear/${loan.gearItem.id}`}
+                  className="font-bold text-primary-700 hover:underline"
+                >
+                  <div className="flex items-center justify-between">
                     {loan.gearItem.name}
-                  </Link>
-                  {isOverdue(loan) && (
-                    <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                      OVERDUE
-                    </span>
-                  )}
-                </div>
+
+                    {isOverdue(loan) && (
+                      <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded-full font-medium">
+                        OVERDUE
+                      </span>
+                    )}
+                  </div>
+                </Link>
                 <div className="text-sm text-gray-500 mt-1">
                   {loan.gearItem.category && <span className="mr-3">{loan.gearItem.category}</span>}
                   <span>Checked out: {formatDate(loan.checkoutDate)}</span>

@@ -17,7 +17,7 @@ export default function Login() {
 
     try {
       await signIn(email, password);
-      navigate('/my-loans');
+      navigate('/');
     } catch (err) {
       setError(err.message);
     } finally {

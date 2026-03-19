@@ -153,7 +153,7 @@ export default function GearLanding() {
                 disabled={checkoutLoading}
                 className="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 rounded-lg font-medium disabled:opacity-50"
               >
-                {checkoutLoading ? 'Checking out…' : 'Check Out This Gear'}
+                {checkoutLoading ? 'Checking out…' : 'Checkout This Item'}
               </button>
             </div>
           )}

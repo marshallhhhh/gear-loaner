@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
+import { CameraIcon } from '@heroicons/react/24/outline';
 
 export default function QRScanner({ onScan, onError }) {
   const scannerRef = useRef(null);
@@ -86,9 +87,10 @@ export default function QRScanner({ onScan, onError }) {
         {!scanning ? (
           <button
             onClick={startScanning}
-            className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium text-lg"
+            className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium text-lg inline-flex items-center"
           >
-            📷 Start Scanner
+            <CameraIcon className="h-6 w-6 mr-2" aria-hidden="true" />
+            Start Scanner
           </button>
         ) : (
           <button
