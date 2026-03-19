@@ -2,33 +2,33 @@ import { useEffect } from 'react';
 
 /**
  * A styled confirmation modal that matches the site's design.
- * 
+ *
  * @param {{ message: string, onConfirm: () => void, onCancel: () => void, isOpen: boolean, isLoading?: boolean, confirmText?: string, cancelText?: string, isDangerous?: boolean }} props
  */
-export default function ConfirmModal({ 
-  message, 
-  onConfirm, 
-  onCancel, 
+export default function ConfirmModal({
+  message,
+  onConfirm,
+  onCancel,
   isOpen,
   isLoading = false,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
-  isDangerous = false
+  isDangerous = false,
 }) {
   useEffect(() => {
     if (!isOpen) return;
-    
+
     function handleKeyDown(e) {
       if (e.key === 'Escape') onCancel();
     }
-    
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onCancel]);
 
   if (!isOpen) return null;
 
-  const confirmButtonClass = isDangerous 
+  const confirmButtonClass = isDangerous
     ? 'bg-red-600 hover:bg-red-700 text-white'
     : 'bg-primary-600 hover:bg-primary-700 text-white';
 

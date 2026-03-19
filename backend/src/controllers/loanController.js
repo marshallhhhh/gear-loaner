@@ -9,14 +9,6 @@ import { parsePagination } from '../utils/pagination.js';
 /** Matches the AAA-XXX short ID format */
 const SHORT_ID_RE = /^[A-Za-z]{3}-\d{3}$/;
 
-/** Resolves a gearItemId that may be a shortId or a UUID. Returns the Gear record or null. */
-async function resolveGear(gearItemId) {
-  const where = SHORT_ID_RE.test(gearItemId)
-    ? { shortId: gearItemId.toUpperCase() }
-    : { id: gearItemId };
-  return prisma.gear.findUnique({ where });
-}
-
 /**
  * Resolves gear inside a transaction with a row-level lock (SELECT ... FOR UPDATE).
  * Prevents concurrent checkouts from both seeing AVAILABLE.
@@ -209,7 +201,7 @@ export async function returnGear(req, res, next) {
     const loanId = req.params.id;
     const { condition, latitude, longitude, notes } = req.body;
 
-    const { result, updatedGear } = await prisma.$transaction(async (tx) => {
+    const { updatedGear } = await prisma.$transaction(async (tx) => {
       // Lock the loan row to prevent concurrent returns
       const [loan] = await tx.$queryRaw(
         Prisma.sql`SELECT * FROM "Loan" WHERE "id" = ${loanId} FOR UPDATE`,

@@ -72,9 +72,7 @@ export default function FoundReports() {
     <div>
       <h1 className="text-2xl font-bold mb-6">Found Reports</h1>
 
-      {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{error}</div>
-      )}
+      {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{error}</div>}
 
       {/* Filter */}
       <div className="mb-4">

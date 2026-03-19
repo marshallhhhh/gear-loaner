@@ -19,9 +19,7 @@ export async function listGear(req, res, next) {
     // 1. Filtering by HAS_OPEN_REPORTS status, or
     // 2. Admin users who see the reportedFound badge on every item
     const needReportedFound = status === 'HAS_OPEN_REPORTS' || req.profile?.role === 'ADMIN';
-    const openReportGearIds = needReportedFound
-      ? await getGearIdsWithOpenReports()
-      : new Set();
+    const openReportGearIds = needReportedFound ? await getGearIdsWithOpenReports() : new Set();
 
     // For the special HAS_OPEN_REPORTS filter, show only items with open found reports
     if (status === 'HAS_OPEN_REPORTS') {

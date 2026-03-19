@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.js';
 import { stringify } from 'csv-stringify/sync';
-import { getGearIdsWithOpenReports, countOpenReports } from '../services/foundReportService.js';
+import { countOpenReports } from '../services/foundReportService.js';
 import { categoryName, normalizeGearCategory } from '../services/normalize.js';
 import logger from '../config/logger.js';
 
@@ -71,17 +71,25 @@ export async function exportGear(req, res, next) {
 
 export async function getDashboardStats(req, res, next) {
   try {
-    const [totalGear, availableGear, checkedOut, lost, activeLoans, overdueLoans, totalUsers, openFoundReports] =
-      await Promise.all([
-        prisma.gear.count(),
-        prisma.gear.count({ where: { loanStatus: 'AVAILABLE' } }),
-        prisma.gear.count({ where: { loanStatus: 'CHECKED_OUT' } }),
-        prisma.gear.count({ where: { loanStatus: 'LOST' } }),
-        prisma.loan.count({ where: { status: 'ACTIVE' } }),
-        prisma.loan.count({ where: { status: 'ACTIVE', dueDate: { lt: new Date() } } }),
-        prisma.profile.count(),
-        countOpenReports(),
-      ]);
+    const [
+      totalGear,
+      availableGear,
+      checkedOut,
+      lost,
+      activeLoans,
+      overdueLoans,
+      totalUsers,
+      openFoundReports,
+    ] = await Promise.all([
+      prisma.gear.count(),
+      prisma.gear.count({ where: { loanStatus: 'AVAILABLE' } }),
+      prisma.gear.count({ where: { loanStatus: 'CHECKED_OUT' } }),
+      prisma.gear.count({ where: { loanStatus: 'LOST' } }),
+      prisma.loan.count({ where: { status: 'ACTIVE' } }),
+      prisma.loan.count({ where: { status: 'ACTIVE', dueDate: { lt: new Date() } } }),
+      prisma.profile.count(),
+      countOpenReports(),
+    ]);
 
     res.json({
       totalGear,
@@ -102,7 +110,10 @@ export async function getAuditLog(req, res, next) {
   try {
     const { action } = req.query;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || req.query.limit, 10) || 50, 1), 500);
+    const pageSize = Math.min(
+      Math.max(parseInt(req.query.pageSize || req.query.limit, 10) || 50, 1),
+      500,
+    );
     const where = {};
     if (action) where.type = action;
 
@@ -249,7 +260,10 @@ export async function closeAllOpenReports(req, res, next) {
       return res.status(400).json({ error: 'No open found reports for this item' });
     }
 
-    logger.info({ gearId, adminId: req.profile.id, count: result.count }, 'Admin closed all open found reports for gear');
+    logger.info(
+      { gearId, adminId: req.profile.id, count: result.count },
+      'Admin closed all open found reports for gear',
+    );
 
     res.json({ success: true, closedCount: result.count });
   } catch (err) {

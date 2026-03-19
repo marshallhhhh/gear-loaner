@@ -15,21 +15,57 @@ import useGearForm from '../../hooks/useGearForm.js';
  */
 const STATUS_TRANSITIONS = {
   CHECKED_OUT: [
-    { newStatus: 'AVAILABLE', label: 'Make Available', colorClass: 'bg-green-600 hover:bg-green-700 text-white' },
-    { newStatus: 'LOST', label: 'Report Lost', colorClass: 'bg-red-600 hover:bg-red-700 text-white' },
-    { newStatus: 'RETIRED', label: 'Retire', colorClass: 'bg-gray-600 hover:bg-gray-700 text-white' },
+    {
+      newStatus: 'AVAILABLE',
+      label: 'Make Available',
+      colorClass: 'bg-green-600 hover:bg-green-700 text-white',
+    },
+    {
+      newStatus: 'LOST',
+      label: 'Report Lost',
+      colorClass: 'bg-red-600 hover:bg-red-700 text-white',
+    },
+    {
+      newStatus: 'RETIRED',
+      label: 'Retire',
+      colorClass: 'bg-gray-600 hover:bg-gray-700 text-white',
+    },
   ],
   AVAILABLE: [
-    { newStatus: 'LOST', label: 'Report Lost', colorClass: 'bg-red-600 hover:bg-red-700 text-white' },
-    { newStatus: 'RETIRED', label: 'Retire', colorClass: 'bg-gray-600 hover:bg-gray-700 text-white' },
+    {
+      newStatus: 'LOST',
+      label: 'Report Lost',
+      colorClass: 'bg-red-600 hover:bg-red-700 text-white',
+    },
+    {
+      newStatus: 'RETIRED',
+      label: 'Retire',
+      colorClass: 'bg-gray-600 hover:bg-gray-700 text-white',
+    },
   ],
   LOST: [
-    { newStatus: 'AVAILABLE', label: 'Make Available', colorClass: 'bg-green-600 hover:bg-green-700 text-white' },
-    { newStatus: 'RETIRED', label: 'Retire', colorClass: 'bg-gray-600 hover:bg-gray-700 text-white' },
+    {
+      newStatus: 'AVAILABLE',
+      label: 'Make Available',
+      colorClass: 'bg-green-600 hover:bg-green-700 text-white',
+    },
+    {
+      newStatus: 'RETIRED',
+      label: 'Retire',
+      colorClass: 'bg-gray-600 hover:bg-gray-700 text-white',
+    },
   ],
   RETIRED: [
-    { newStatus: 'AVAILABLE', label: 'Make Available', colorClass: 'bg-green-600 hover:bg-green-700 text-white' },
-    { newStatus: 'LOST', label: 'Report Lost', colorClass: 'bg-red-600 hover:bg-red-700 text-white' },
+    {
+      newStatus: 'AVAILABLE',
+      label: 'Make Available',
+      colorClass: 'bg-green-600 hover:bg-green-700 text-white',
+    },
+    {
+      newStatus: 'LOST',
+      label: 'Report Lost',
+      colorClass: 'bg-red-600 hover:bg-red-700 text-white',
+    },
   ],
 };
 
@@ -269,9 +305,7 @@ export default function GearDetail() {
             </p>
           )}
           {hasOpenReports && (
-            <p className="text-xs text-amber-600 mt-2">
-              This item has open found reports
-            </p>
+            <p className="text-xs text-amber-600 mt-2">This item has open found reports</p>
           )}
         </div>
       )}
@@ -526,31 +560,40 @@ export default function GearDetail() {
           </thead>
           <tbody className="divide-y">
             {history.map((entry, i) => {
-              const clickable = ['Reported Found', 'Checkout', 'Return', 'Marked Lost', 'Marked Available', 'Retired', 'Unretired', 'Loan Cancelled'].includes(entry.action);
+              const clickable = [
+                'Reported Found',
+                'Checkout',
+                'Return',
+                'Marked Lost',
+                'Marked Available',
+                'Retired',
+                'Unretired',
+                'Loan Cancelled',
+              ].includes(entry.action);
               return (
-              <tr
-                key={i}
-                className={`hover:bg-gray-50 ${clickable ? 'cursor-pointer' : ''}`}
-                onClick={() => {
-                  if (clickable) {
-                    setSelectedEntry(entry);
-                  }
-                }}
-              >
-                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                  {formatDateTime(entry.time)}
-                </td>
-                <td className="px-4 py-3">{entry.user}</td>
-                <td className="px-4 py-3 text-gray-500 font-mono text-xs">{entry.location}</td>
-                <td className="px-4 py-3">
-                  <ActionBadge action={entry.action} />
-                  {clickable && (
-                    <span className="ml-2 text-xs text-gray-400 hover:text-gray-600">
-                      View details →
-                    </span>
-                  )}
-                </td>
-              </tr>
+                <tr
+                  key={i}
+                  className={`hover:bg-gray-50 ${clickable ? 'cursor-pointer' : ''}`}
+                  onClick={() => {
+                    if (clickable) {
+                      setSelectedEntry(entry);
+                    }
+                  }}
+                >
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                    {formatDateTime(entry.time)}
+                  </td>
+                  <td className="px-4 py-3">{entry.user}</td>
+                  <td className="px-4 py-3 text-gray-500 font-mono text-xs">{entry.location}</td>
+                  <td className="px-4 py-3">
+                    <ActionBadge action={entry.action} />
+                    {clickable && (
+                      <span className="ml-2 text-xs text-gray-400 hover:text-gray-600">
+                        View details →
+                      </span>
+                    )}
+                  </td>
+                </tr>
               );
             })}
             {history.length === 0 && (
