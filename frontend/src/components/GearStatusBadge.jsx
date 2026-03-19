@@ -23,7 +23,9 @@ export default function GearStatusBadge({ status, reportedFound, size = 'small' 
         {config.label}
       </span>
       {reportedFound && status !== 'LOST' && (
-        <span className={`inline-block rounded-full font-medium ${sizeClasses.text} ${sizeClasses.padding} bg-orange-100 text-orange-800`}>
+        <span
+          className={`inline-block rounded-full font-medium ${sizeClasses.text} ${sizeClasses.padding} bg-orange-100 text-orange-800`}
+        >
           Reported Found
         </span>
       )}

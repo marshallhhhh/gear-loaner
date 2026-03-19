@@ -80,7 +80,7 @@ export default function LoanHistory() {
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="text-left px-4 py-3 font-medium">Gear</th>
-              <th className="text-left px-4 py-3 font-medium">User</th>
+              <th className="text-left px-4 py-3 font-medium">Borrower</th>
               <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Checkout</th>
               <th className="text-left px-4 py-3 font-medium">Due Date</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
@@ -111,10 +111,12 @@ export default function LoanHistory() {
                         ? 'bg-red-100 text-red-800'
                         : loan.status === 'ACTIVE'
                           ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
+                          : loan.status === 'CANCELLED'
+                            ? 'bg-gray-100 text-gray-800'
+                            : 'bg-green-100 text-green-800'
                     }`}
                   >
-                    {isOverdue(loan) ? 'OVERDUE' : loan.status}
+                    {isOverdue(loan) ? 'Overdue' : loan.status}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
@@ -166,17 +168,24 @@ export default function LoanHistory() {
                   ? 'bg-red-100 text-red-800'
                   : selectedLoan.status === 'ACTIVE'
                     ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-green-100 text-green-800'
+                    : selectedLoan.status === 'CANCELLED'
+                      ? 'bg-gray-100 text-gray-800'
+                      : 'bg-green-100 text-green-800'
               }`}
             >
-              {isOverdue(selectedLoan) ? 'OVERDUE' : selectedLoan.status}
+              {isOverdue(selectedLoan) ? 'Overdue' : selectedLoan.status}
             </span>
           ) : null
         }
         fields={
           selectedLoan
             ? [
-                { label: 'Item', value: selectedLoan.gearItem.name, type: 'gear', gearId: selectedLoan.gearItemId },
+                {
+                  label: 'Item',
+                  value: selectedLoan.gearItem.name,
+                  type: 'gear',
+                  gearId: selectedLoan.gearItemId,
+                },
                 {
                   label: 'User',
                   value: selectedLoan.user.fullName || selectedLoan.user.email,

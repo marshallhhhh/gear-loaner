@@ -14,6 +14,7 @@ const GearManagement = lazy(() => import('./pages/admin/GearManagement.jsx'));
 const GearDetail = lazy(() => import('./pages/admin/GearDetail.jsx'));
 const LoanHistory = lazy(() => import('./pages/admin/LoanHistory.jsx'));
 const UserManagement = lazy(() => import('./pages/admin/UserManagement.jsx'));
+const UserDetail = lazy(() => import('./pages/admin/UserDetail.jsx'));
 const PrintTags = lazy(() => import('./pages/admin/PrintTags.jsx'));
 const FoundReports = lazy(() => import('./pages/admin/FoundReports.jsx'));
 
@@ -121,6 +122,14 @@ export default function App() {
               element={
                 <ProtectedRoute adminOnly>
                   <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:id"
+              element={
+                <ProtectedRoute adminOnly>
+                  <UserDetail />
                 </ProtectedRoute>
               }
             />

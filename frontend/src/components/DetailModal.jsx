@@ -70,7 +70,10 @@ export default function DetailModal({ isOpen, title, badge, fields = [], onClose
                 <dt className="text-gray-500">{label}</dt>
                 <dd className={fieldClass(type)}>
                   {type === 'user' && userId ? (
-                    <Link to="/admin/users" className="text-primary-600 hover:underline">
+                    <Link
+                      to={`/admin/users/${userId}`}
+                      className="text-primary-600 hover:underline"
+                    >
                       {value}
                     </Link>
                   ) : type === 'gear' && gearId ? (
