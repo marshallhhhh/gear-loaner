@@ -4,7 +4,7 @@ import { api } from '../../config/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useGeolocation from '../../hooks/useGeolocation.js';
 
-export default function ReportLost() {
+export default function ReportFound() {
   const { id } = useParams();
   const { getToken } = useAuth();
   const [contactInfo, setContactInfo] = useState('');
@@ -22,10 +22,10 @@ export default function ReportLost() {
     try {
       const location = await getLocation();
       const token = await getToken();
-      await api(`/gear/${id}/report-lost`, {
+      await api(`/found-reports/${id}`, {
         method: 'POST',
         token,
-        body: { contactInfo, notes, ...(location || {}) },
+        body: { contactInfo, description: notes, ...(location || {}) },
       });
       setSubmitted(true);
     } catch (err) {
@@ -40,7 +40,7 @@ export default function ReportLost() {
       <div className="max-w-md mx-auto mt-12 text-center">
         <h1 className="text-2xl font-bold mb-4">Thank You</h1>
         <p className="text-gray-600 mb-4">
-          Your lost item report has been submitted. A club leader will follow up.
+          Your found item report has been submitted. A club leader will follow up.
         </p>
       </div>
     );
@@ -48,7 +48,7 @@ export default function ReportLost() {
 
   return (
     <div className="max-w-md mx-auto mt-12">
-      <h1 className="text-2xl font-bold mb-6">Report Item as Lost</h1>
+      <h1 className="text-2xl font-bold mb-6">Report Item as Found</h1>
 
       {error && <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
 
@@ -87,7 +87,7 @@ export default function ReportLost() {
           disabled={loading}
           className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium disabled:opacity-50"
         >
-          {loading ? 'Submitting…' : 'Report as Lost'}
+          {loading ? 'Submitting…' : 'Report as Found'}
         </button>
       </form>
     </div>

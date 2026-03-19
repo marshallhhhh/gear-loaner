@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import {
   createGearSchema,
   updateGearSchema,
+  changeGearStatusSchema,
   checkoutSchema,
   returnGearSchema,
   updateUserSchema,
   listGearQuerySchema,
   listLoansQuerySchema,
   listUsersQuerySchema,
-  auditLogQuerySchema,
   reportLostSchema,
   overrideLoanSchema,
 } from '../src/schemas.js';
@@ -74,13 +74,26 @@ describe('updateGearSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('accepts valid loanStatus', () => {
+  it('strips unknown fields like loanStatus', () => {
     const result = updateGearSchema.safeParse({ loanStatus: 'RETIRED' });
+    expect(result.success).toBe(true);
+    expect(result.data).not.toHaveProperty('loanStatus');
+  });
+});
+
+describe('changeGearStatusSchema', () => {
+  it('accepts valid status', () => {
+    const result = changeGearStatusSchema.safeParse({ newStatus: 'LOST' });
     expect(result.success).toBe(true);
   });
 
-  it('rejects invalid loanStatus', () => {
-    const result = updateGearSchema.safeParse({ loanStatus: 'DELETED' });
+  it('rejects invalid status', () => {
+    const result = changeGearStatusSchema.safeParse({ newStatus: 'DELETED' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing newStatus', () => {
+    const result = changeGearStatusSchema.safeParse({});
     expect(result.success).toBe(false);
   });
 });
@@ -243,22 +256,5 @@ describe('listUsersQuerySchema', () => {
   it('rejects invalid isActive value', () => {
     const result = listUsersQuerySchema.safeParse({ isActive: 'yes' });
     expect(result.success).toBe(false);
-  });
-});
-
-describe('auditLogQuerySchema', () => {
-  it('accepts limit as string number', () => {
-    const result = auditLogQuerySchema.safeParse({ limit: '100' });
-    expect(result.success).toBe(true);
-  });
-
-  it('rejects non-numeric limit', () => {
-    const result = auditLogQuerySchema.safeParse({ limit: 'many' });
-    expect(result.success).toBe(false);
-  });
-
-  it('accepts pagination params', () => {
-    const result = auditLogQuerySchema.safeParse({ page: '2', pageSize: '25' });
-    expect(result.success).toBe(true);
   });
 });

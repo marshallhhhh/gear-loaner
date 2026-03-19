@@ -73,7 +73,7 @@ export default function MiniMap({ location, theme = 'positron' }) {
       <MapContainer
         center={[lat, lng]}
         zoom={14}
-        scrollWheelZoom={false}
+        scrollWheelZoom={true}
         style={{ height: '100%', width: '100%' }}
         attributionControl={true}
       >

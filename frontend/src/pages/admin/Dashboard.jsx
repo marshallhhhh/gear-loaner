@@ -74,16 +74,15 @@ export default function Dashboard() {
     },
     {
       label: 'Lost',
-      value: stats.lost + (stats.reportedLost || 0),
+      value: stats.lost,
       linkTo: '/admin/gear?status=LOST',
       bgColor: 'bg-red-500',
       textColor: 'text-red-500',
-      subtitle: stats.reportedLost ? `${stats.reportedLost} reported` : null,
     },
     {
-      label: 'Reported Lost',
-      value: stats.reportedLost || 0,
-      linkTo: '/admin/gear?status=REPORTED_LOST',
+      label: 'Open Found Reports',
+      value: stats.openFoundReports || 0,
+      linkTo: '/admin/found-reports',
       bgColor: 'bg-orange-500',
       textColor: 'text-orange-500',
     },
@@ -151,6 +150,14 @@ export default function Dashboard() {
         >
           <h3 className="font-semibold text-lg mb-1">User Management</h3>
           <p className="text-sm text-gray-500">Manage members and admins</p>
+        </Link>
+
+        <Link
+          to="/admin/found-reports"
+          className="bg-white rounded-xl shadow p-6 hover:shadow-md transition block"
+        >
+          <h3 className="font-semibold text-lg mb-1">Found Reports</h3>
+          <p className="text-sm text-gray-500">View and close found item reports</p>
         </Link>
 
         <div className="bg-white rounded-xl shadow p-6">

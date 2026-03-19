@@ -6,7 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 const Login = lazy(() => import('./pages/auth/Login.jsx'));
 const SignUp = lazy(() => import('./pages/auth/SignUp.jsx'));
 const GearLanding = lazy(() => import('./pages/public/GearLanding.jsx'));
-const ReportLost = lazy(() => import('./pages/public/ReportLost.jsx'));
+const ReportFound = lazy(() => import('./pages/public/ReportFound.jsx'));
 const ScanPage = lazy(() => import('./pages/public/ScanPage.jsx'));
 const MyLoans = lazy(() => import('./pages/member/MyLoans.jsx'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard.jsx'));
@@ -15,6 +15,7 @@ const GearDetail = lazy(() => import('./pages/admin/GearDetail.jsx'));
 const LoanHistory = lazy(() => import('./pages/admin/LoanHistory.jsx'));
 const UserManagement = lazy(() => import('./pages/admin/UserManagement.jsx'));
 const PrintTags = lazy(() => import('./pages/admin/PrintTags.jsx'));
+const FoundReports = lazy(() => import('./pages/admin/FoundReports.jsx'));
 
 function PageSpinner() {
   return (
@@ -62,7 +63,7 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/gear/:id" element={<GearLanding />} />
-            <Route path="/gear/:id/report-lost" element={<ReportLost />} />
+            <Route path="/gear/:id/report-found" element={<ReportFound />} />
 
             {/* Member (authenticated) */}
             <Route
@@ -128,6 +129,14 @@ export default function App() {
               element={
                 <ProtectedRoute adminOnly>
                   <PrintTags />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/found-reports"
+              element={
+                <ProtectedRoute adminOnly>
+                  <FoundReports />
                 </ProtectedRoute>
               }
             />

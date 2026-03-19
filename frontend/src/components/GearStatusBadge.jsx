@@ -5,7 +5,7 @@ const statusConfig = {
   RETIRED: { label: 'Retired', className: 'bg-gray-100 text-gray-800' },
 };
 
-export default function GearStatusBadge({ status, reportedLost }) {
+export default function GearStatusBadge({ status, reportedFound }) {
   const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
 
   return (
@@ -15,9 +15,9 @@ export default function GearStatusBadge({ status, reportedLost }) {
       >
         {config.label}
       </span>
-      {reportedLost && status !== 'LOST' && (
+      {reportedFound && status !== 'LOST' && (
         <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-          Reported Lost
+          Reported Found
         </span>
       )}
     </span>

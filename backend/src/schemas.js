@@ -8,6 +8,12 @@ const GearStatus = z.enum(['AVAILABLE', 'CHECKED_OUT', 'LOST', 'RETIRED']);
 const LoanStatus = z.enum(['ACTIVE', 'RETURNED']);
 const Role = z.enum(['MEMBER', 'ADMIN']);
 
+/** Reusable page / pageSize params for list endpoints. */
+const paginationParams = {
+  page: z.string().regex(/^\d+$/).optional(),
+  pageSize: z.string().regex(/^\d+$/).optional(),
+};
+
 // ── Gear ─────────────────────────────────────────────────────────────
 
 export const createGearSchema = z
@@ -29,7 +35,12 @@ export const updateGearSchema = z
     tags: z.array(z.string().min(1).max(50)).max(20).optional(),
     serialNumber: z.string().max(200).nullish(),
     defaultLoanDays: z.number().int().min(1).max(30).optional(),
-    loanStatus: GearStatus.optional(),
+  })
+  .strip();
+
+export const changeGearStatusSchema = z
+  .object({
+    newStatus: GearStatus,
   })
   .strip();
 
@@ -39,6 +50,25 @@ export const reportLostSchema = z
     notes: z.string().max(2000).optional().default(''),
     latitude: latitude.nullish(),
     longitude: longitude.nullish(),
+  })
+  .strip();
+
+// ── Found Reports ────────────────────────────────────────────────────
+
+export const createFoundReportSchema = z
+  .object({
+    contactInfo: z.string().max(200).optional().default(''),
+    description: z.string().max(2000).optional().default(''),
+    latitude: latitude.nullish(),
+    longitude: longitude.nullish(),
+  })
+  .strip();
+
+export const listFoundReportsQuerySchema = z
+  .object({
+    status: z.enum(['OPEN', 'CLOSED']).optional(),
+    gearItemId: z.string().max(200).optional(),
+    ...paginationParams,
   })
   .strip();
 
@@ -91,13 +121,7 @@ export const updateMyProfileSchema = z
   })
   .strip();
 
-// ── Query params (values arrive as strings) ──────────────────────────
-
-/** Reusable page / pageSize params for list endpoints. */
-const paginationParams = {
-  page: z.string().regex(/^\d+$/).optional(),
-  pageSize: z.string().regex(/^\d+$/).optional(),
-};
+// ── Query params ─────────────────────────────────────────────────────
 
 export const listGearQuerySchema = z
   .object({
@@ -122,15 +146,6 @@ export const listUsersQuerySchema = z
     search: z.string().max(200).optional(),
     role: z.string().max(20).optional(),
     isActive: z.enum(['true', 'false']).optional(),
-    ...paginationParams,
-  })
-  .strip();
-
-export const auditLogQuerySchema = z
-  .object({
-    entity: z.string().max(100).optional(),
-    action: z.string().max(100).optional(),
-    limit: z.string().regex(/^\d+$/, 'limit must be a number').optional(),
     ...paginationParams,
   })
   .strip();

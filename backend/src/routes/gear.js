@@ -5,7 +5,7 @@ import { validate, validateQuery } from '../middleware/validate.js';
 import {
   createGearSchema,
   updateGearSchema,
-  reportLostSchema,
+  changeGearStatusSchema,
   listGearQuerySchema,
 } from '../schemas.js';
 import {
@@ -14,7 +14,7 @@ import {
   createGear,
   updateGear,
   deleteGear,
-  reportLost,
+  changeGearStatus,
   getCategories,
 } from '../controllers/gearController.js';
 
@@ -23,7 +23,6 @@ const router = Router();
 // Public
 router.get('/categories', getCategories);
 router.get('/:id', optionalAuth, getGear);
-router.post('/:id/report-lost', optionalAuth, validate(reportLostSchema), reportLost);
 
 // Authenticated
 router.get('/', authenticate, validateQuery(listGearQuerySchema), listGear);
@@ -31,6 +30,13 @@ router.get('/', authenticate, validateQuery(listGearQuerySchema), listGear);
 // Admin only
 router.post('/', authenticate, requireRole('ADMIN'), validate(createGearSchema), createGear);
 router.put('/:id', authenticate, requireRole('ADMIN'), validate(updateGearSchema), updateGear);
+router.post(
+  '/:id/status',
+  authenticate,
+  requireRole('ADMIN'),
+  validate(changeGearStatusSchema),
+  changeGearStatus,
+);
 router.delete('/:id', authenticate, requireRole('ADMIN'), deleteGear);
 
 export default router;

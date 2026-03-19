@@ -130,7 +130,7 @@ describe('emailService', () => {
 
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
-          html: expect.stringContaining('4/1/2026'),
+          html: expect.stringContaining(dueDate.toLocaleDateString()),
         }),
       );
     });
@@ -281,7 +281,7 @@ describe('emailService', () => {
 
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
-          html: expect.stringContaining('3/15/2026'),
+          html: expect.stringContaining(dueDate.toLocaleDateString()),
         }),
       );
     });

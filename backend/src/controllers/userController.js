@@ -1,5 +1,4 @@
 import prisma from '../config/prisma.js';
-import { logAction } from '../services/auditService.js';
 import { parsePagination } from '../utils/pagination.js';
 
 export async function listUsers(req, res, next) {
@@ -75,14 +74,6 @@ export async function updateUser(req, res, next) {
     const user = await prisma.profile.update({
       where: { id: req.params.id },
       data,
-    });
-
-    await logAction({
-      userId: req.profile.id,
-      action: 'UPDATE_USER',
-      entity: 'Profile',
-      entityId: req.params.id,
-      details: data,
     });
 
     res.json(user);

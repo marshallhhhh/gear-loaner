@@ -182,10 +182,10 @@ export default function GearLanding() {
           )}
 
           <button
-            onClick={() => navigate(`/gear/${id}/report-lost`)}
+            onClick={() => navigate(`/gear/${id}/report-found`)}
             className="w-full border border-red-300 text-red-600 hover:bg-red-50 py-2 rounded-lg text-sm"
           >
-            Report Lost & Found
+            Report Found Item
           </button>
         </div>
       </div>

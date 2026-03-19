@@ -6,7 +6,68 @@ import GearStatusBadge from '../../components/GearStatusBadge.jsx';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import ActionBadge from '../../components/ActionBadge.jsx';
 import HistoryDetailModal from '../../components/HistoryDetailModal.jsx';
+import ConfirmModal from '../../components/ConfirmModal.jsx';
 import useGearForm from '../../hooks/useGearForm.js';
+
+/**
+ * Valid admin status transitions.
+ * Key: current status → array of { newStatus, label, colorClass }
+ */
+const STATUS_TRANSITIONS = {
+  CHECKED_OUT: [
+    {
+      newStatus: 'AVAILABLE',
+      label: 'Make Available',
+      colorClass: 'bg-green-600 hover:bg-green-700 text-white',
+    },
+    {
+      newStatus: 'LOST',
+      label: 'Report Lost',
+      colorClass: 'bg-red-600 hover:bg-red-700 text-white',
+    },
+    {
+      newStatus: 'RETIRED',
+      label: 'Retire',
+      colorClass: 'bg-gray-600 hover:bg-gray-700 text-white',
+    },
+  ],
+  AVAILABLE: [
+    {
+      newStatus: 'LOST',
+      label: 'Report Lost',
+      colorClass: 'bg-red-600 hover:bg-red-700 text-white',
+    },
+    {
+      newStatus: 'RETIRED',
+      label: 'Retire',
+      colorClass: 'bg-gray-600 hover:bg-gray-700 text-white',
+    },
+  ],
+  LOST: [
+    {
+      newStatus: 'AVAILABLE',
+      label: 'Make Available',
+      colorClass: 'bg-green-600 hover:bg-green-700 text-white',
+    },
+    {
+      newStatus: 'RETIRED',
+      label: 'Retire',
+      colorClass: 'bg-gray-600 hover:bg-gray-700 text-white',
+    },
+  ],
+  RETIRED: [
+    {
+      newStatus: 'AVAILABLE',
+      label: 'Make Available',
+      colorClass: 'bg-green-600 hover:bg-green-700 text-white',
+    },
+    {
+      newStatus: 'LOST',
+      label: 'Report Lost',
+      colorClass: 'bg-red-600 hover:bg-red-700 text-white',
+    },
+  ],
+};
 
 export default function GearDetail() {
   const { id } = useParams();
@@ -16,6 +77,7 @@ export default function GearDetail() {
   const [gear, setGear] = useState(null);
   const [activeLoan, setActiveLoan] = useState(null);
   const [history, setHistory] = useState([]);
+  const [hasOpenReports, setHasOpenReports] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState('');
@@ -32,12 +94,22 @@ export default function GearDetail() {
     buildBody,
     handleCategoryChange,
     handleNewCategoryInput,
-  } = useGearForm({ serialNumber: '', loanStatus: 'AVAILABLE' });
+  } = useGearForm({ serialNumber: '' });
 
   const [categories, setCategories] = useState([]);
+  const [statusChanging, setStatusChanging] = useState(false);
 
   // selected history entry for the detail modal (Checkout, Return, or Reported Lost)
   const [selectedEntry, setSelectedEntry] = useState(null);
+
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    isDangerous: false,
+  });
 
   useEffect(() => {
     fetchDetail();
@@ -60,6 +132,7 @@ export default function GearDetail() {
       setGear(data.gear);
       setActiveLoan(data.activeLoan);
       setHistory(data.history);
+      setHasOpenReports(data.hasOpenReports ?? false);
 
       populateForm(data.gear);
     } catch (err) {
@@ -67,6 +140,31 @@ export default function GearDetail() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleCloseReports() {
+    setConfirmModal({
+      isOpen: true,
+      message: 'Close all open found reports for this item? They will be marked as resolved.',
+      confirmText: 'Close Reports',
+      isDangerous: false,
+      onConfirm: async () => {
+        setStatusChanging(true);
+        setError('');
+        try {
+          await api(`/admin/gear/${id}/close-reports`, {
+            method: 'POST',
+            token: await getToken(),
+          });
+          setConfirmModal((m) => ({ ...m, isOpen: false }));
+          fetchDetail();
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setStatusChanging(false);
+        }
+      },
+    });
   }
 
   async function handleSave(e) {
@@ -85,6 +183,37 @@ export default function GearDetail() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleStatusChange(newStatus, label) {
+    const confirmMsg =
+      gear.loanStatus === 'CHECKED_OUT'
+        ? `${label}? This will cancel the active loan on this item.`
+        : `${label}?`;
+
+    setConfirmModal({
+      isOpen: true,
+      message: confirmMsg,
+      confirmText: label,
+      isDangerous: newStatus === 'LOST' || newStatus === 'RETIRED',
+      onConfirm: async () => {
+        setStatusChanging(true);
+        setError('');
+        try {
+          await api(`/gear/${id}/status`, {
+            method: 'POST',
+            token: await getToken(),
+            body: { newStatus },
+          });
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          fetchDetail();
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setStatusChanging(false);
+        }
+      },
+    });
   }
 
   if (loading) {
@@ -122,7 +251,7 @@ export default function GearDetail() {
           <p className="text-gray-500 text-sm font-mono mt-1">{gear.shortId || gear.id}</p>
         </div>
         <div className="flex items-center gap-3">
-          <GearStatusBadge status={gear.loanStatus} />
+          <GearStatusBadge status={gear.loanStatus} reportedFound={hasOpenReports} />
           {!editing && (
             <>
               <button
@@ -145,6 +274,41 @@ export default function GearDetail() {
           )}
         </div>
       </div>
+
+      {/* Status Action Buttons */}
+      {!editing && (STATUS_TRANSITIONS[gear.loanStatus] || hasOpenReports) && (
+        <div className="bg-white rounded-xl shadow p-4 mb-6">
+          <div className="flex flex-wrap gap-2">
+            {STATUS_TRANSITIONS[gear.loanStatus]?.map(({ newStatus, label, colorClass }) => (
+              <button
+                key={newStatus}
+                onClick={() => handleStatusChange(newStatus, label)}
+                disabled={statusChanging}
+                className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 ${colorClass}`}
+              >
+                {statusChanging ? '…' : label}
+              </button>
+            ))}
+            {hasOpenReports && (
+              <button
+                onClick={handleCloseReports}
+                disabled={statusChanging}
+                className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {statusChanging ? '…' : 'Close Found Reports'}
+              </button>
+            )}
+          </div>
+          {gear.loanStatus === 'CHECKED_OUT' && (
+            <p className="text-xs text-gray-500 mt-2">
+              Changing status from Checked Out will cancel the active loan.
+            </p>
+          )}
+          {hasOpenReports && (
+            <p className="text-xs text-amber-600 mt-2">This item has open found reports</p>
+          )}
+        </div>
+      )}
 
       {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{error}</div>}
 
@@ -211,19 +375,6 @@ export default function GearDetail() {
                 onChange={(e) => setForm({ ...form, defaultLoanDays: e.target.value })}
                 className="w-full border rounded-lg px-3 py-2"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                value={form.loanStatus}
-                onChange={(e) => setForm({ ...form, loanStatus: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="AVAILABLE">Available</option>
-                <option value="CHECKED_OUT">Checked Out</option>
-                <option value="LOST">Lost</option>
-                <option value="RETIRED">Retired</option>
-              </select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Short ID</label>
@@ -408,33 +559,43 @@ export default function GearDetail() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {history.map((entry, i) => (
-              <tr
-                key={i}
-                className={`hover:bg-gray-50 ${['Reported Lost', 'Checkout', 'Return'].includes(entry.action) ? 'cursor-pointer' : ''}`}
-                onClick={() => {
-                  if (['Reported Lost', 'Checkout', 'Return'].includes(entry.action)) {
-                    setSelectedEntry(entry);
-                  }
-                }}
-              >
-                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                  {formatDateTime(entry.time)}
-                </td>
-                <td className="px-4 py-3">{entry.user}</td>
-                <td className="px-4 py-3 text-gray-500 font-mono text-xs">{entry.location}</td>
-                <td className="px-4 py-3">
-                  <ActionBadge action={entry.action} />
-                  {(entry.action === 'Reported Lost' ||
-                    entry.action === 'Checkout' ||
-                    entry.action === 'Return') && (
-                    <span className="ml-2 text-xs text-gray-400 hover:text-gray-600">
-                      View details →
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {history.map((entry, i) => {
+              const clickable = [
+                'Reported Found',
+                'Checkout',
+                'Return',
+                'Marked Lost',
+                'Marked Available',
+                'Retired',
+                'Unretired',
+                'Loan Cancelled',
+              ].includes(entry.action);
+              return (
+                <tr
+                  key={i}
+                  className={`hover:bg-gray-50 ${clickable ? 'cursor-pointer' : ''}`}
+                  onClick={() => {
+                    if (clickable) {
+                      setSelectedEntry(entry);
+                    }
+                  }}
+                >
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                    {formatDateTime(entry.time)}
+                  </td>
+                  <td className="px-4 py-3">{entry.user}</td>
+                  <td className="px-4 py-3 text-gray-500 font-mono text-xs">{entry.location}</td>
+                  <td className="px-4 py-3">
+                    <ActionBadge action={entry.action} />
+                    {clickable && (
+                      <span className="ml-2 text-xs text-gray-400 hover:text-gray-600">
+                        View details →
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
             {history.length === 0 && (
               <tr>
                 <td colSpan={4} className="text-center py-8 text-gray-400">
@@ -446,8 +607,19 @@ export default function GearDetail() {
         </table>
       </div>
 
-      {/* Lost Report / Checkout / Return Detail Modal */}
+      {/* Found Report / Checkout / Return Detail Modal */}
       <HistoryDetailModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        isDangerous={confirmModal.isDangerous}
+        isLoading={statusChanging}
+        onConfirm={() => confirmModal.onConfirm?.()}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+      />
     </div>
   );
 }

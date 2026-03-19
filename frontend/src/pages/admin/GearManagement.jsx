@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
+import ConfirmModal from '../../components/ConfirmModal.jsx';
 import usePagination from '../../hooks/usePagination.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import useGearForm from '../../hooks/useGearForm.js';
@@ -41,9 +42,7 @@ export default function GearManagement() {
     saving,
     setSaving,
     showNewCategory,
-    setShowNewCategory,
     newCategory,
-    setNewCategory,
     populateForm,
     resetForm,
     buildBody,
@@ -53,6 +52,13 @@ export default function GearManagement() {
 
   // shortId of the item currently being edited (read-only display)
   const [editingShortId, setEditingShortId] = useState(null);
+
+  // Confirm modal state for delete
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    message: '',
+    onConfirm: null,
+  });
 
   // Fetch gear when filters or page change
   useEffect(() => {
@@ -102,18 +108,26 @@ export default function GearManagement() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this gear item? This cannot be undone.')) return;
-    try {
-      await api(`/gear/${id}`, { method: 'DELETE', token: await getToken() });
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      refetchCurrentPage();
-    } catch (err) {
-      alert(err.message);
-    }
+    setConfirmModal({
+      isOpen: true,
+      message: 'Delete this gear item? This cannot be undone.',
+      confirmText: 'Delete',
+      isDangerous: true,
+      onConfirm: async () => {
+        try {
+          await api(`/gear/${id}`, { method: 'DELETE', token: await getToken() });
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          refetchCurrentPage();
+        } catch (err) {
+          alert(err.message);
+        }
+      },
+    });
   }
 
   function toggleSelect(id) {
@@ -194,7 +208,7 @@ export default function GearManagement() {
           <option value="AVAILABLE">Available</option>
           <option value="CHECKED_OUT">Checked Out</option>
           <option value="LOST">Lost</option>
-          <option value="REPORTED_LOST">Reported Lost</option>
+          <option value="HAS_OPEN_REPORTS">Has Open Found Reports</option>
           <option value="RETIRED">Retired</option>
         </select>
       </div>
@@ -345,7 +359,7 @@ export default function GearManagement() {
                   {item.shortId || '—'}
                 </td>
                 <td className="px-4 py-3">
-                  <GearStatusBadge status={item.loanStatus} reportedLost={item.reportedLost} />
+                  <GearStatusBadge status={item.loanStatus} reportedFound={item.reportedFound} />
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   <button
@@ -385,6 +399,17 @@ export default function GearManagement() {
         onPageChange={fetchPage}
         shownCount={gear.length}
         label="items"
+      />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        isDangerous={confirmModal.isDangerous}
+        isLoading={saving}
+        onConfirm={() => confirmModal.onConfirm?.()}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
       />
     </div>
   );
