@@ -69,18 +69,18 @@ export default function TagTemplate({ gear, qrDataUrl }) {
       >
         {gear.shortId}
         {
-        <div
-        style={{
-          fontWeight: 400,
-          fontSize: '4cqmin',
-          marginBottom: '2%',
-          lineHeight: 1.2,
-          width: '100%',
-          maxHeight: '6cqmin',
-        }}
-        >
+          <div
+            style={{
+              fontWeight: 400,
+              fontSize: '4cqmin',
+              marginBottom: '2%',
+              lineHeight: 1.2,
+              width: '100%',
+              maxHeight: '6cqmin',
+            }}
+          >
             If found please return to TUMC (tasuniclimbing@gmail.com)
-        </div>
+          </div>
         }
       </div>
     </div>

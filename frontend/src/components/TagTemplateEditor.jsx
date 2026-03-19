@@ -167,7 +167,7 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
               let tagHtml = renderToStaticMarkup(<TagTemplate gear={gear} qrDataUrl={qrDataUrl} />);
               tagHtml = tagHtml.replace(
                 /url\(\/static\/qr_tag_background\.png\)/g,
-                `url(${bgImageUrl})`
+                `url(${bgImageUrl})`,
               );
               tagHtml = resolveCqUnits(tagHtml, cellW, cellH);
               return `<div style="width:${cellW}mm;height:${cellH}mm;overflow:hidden;border:1px dashed #ccc;box-sizing:border-box;container-type:size;">${tagHtml}</div>`;
@@ -445,8 +445,6 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
               ))}
             </div>
           </div>
-
-
         </div>
       </div>
     </div>
