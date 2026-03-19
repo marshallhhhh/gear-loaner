@@ -49,6 +49,7 @@ export default function GearManagement() {
     handleCategoryChange,
     handleNewCategoryInput,
   } = useGearForm();
+  const isNameLong = form.name.trim().length > 25;
 
   // shortId of the item currently being edited (read-only display)
   const [editingShortId, setEditingShortId] = useState(null);
@@ -229,6 +230,11 @@ export default function GearManagement() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full border rounded-lg px-3 py-2"
               />
+              {isNameLong && (
+                <p className="mt-1 text-sm text-red-600">
+                  Long names may not fit on tags when printed.
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Category</label>
