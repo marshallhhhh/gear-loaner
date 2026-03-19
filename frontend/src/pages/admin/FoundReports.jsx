@@ -4,6 +4,7 @@ import { api } from '../../config/api.js';
 import { formatDateTime } from '../../utils/formatDate.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
+import HistoryDetailModal from '../../components/HistoryDetailModal.jsx';
 
 export default function FoundReports() {
   const { getToken } = useAuth();
@@ -13,6 +14,7 @@ export default function FoundReports() {
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('OPEN');
   const [closing, setClosing] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     message: '',
@@ -103,7 +105,24 @@ export default function FoundReports() {
           </thead>
           <tbody className="divide-y">
             {reports.map((report) => (
-              <tr key={report.id} className="hover:bg-gray-50">
+              <tr
+                key={report.id}
+                className="hover:bg-gray-50"
+                onClick={() =>
+                  setSelectedEntry({
+                    action: 'Found Report',
+                    time: report.createdAt,
+                    user: report.reporter?.fullName || report.reporter?.email || 'Anonymous',
+                    location: report.location || null,
+                    details: {
+                      gearName: report.gearItem?.name,
+                      shortId: report.gearItem?.shortId,
+                      notes: report.description,
+                      contactInfo: report.contactInfo,
+                    },
+                  })
+                }
+              >
                 <td className="px-4 py-3 font-medium">
                   {report.gearItem?.name || '—'}
                   {report.gearItem?.shortId && (
@@ -138,11 +157,14 @@ export default function FoundReports() {
                 <td className="px-4 py-3 text-right">
                   {report.status === 'OPEN' && (
                     <button
-                      onClick={() => handleClose(report.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClose(report.id);
+                      }}
                       disabled={closing}
                       className="text-primary-600 hover:underline text-xs disabled:opacity-50"
                     >
-                      Close
+                      Resolve
                     </button>
                   )}
                   {report.status === 'CLOSED' && report.closedByAdmin && (
@@ -170,6 +192,8 @@ export default function FoundReports() {
         shownCount={reports.length}
         label="reports"
       />
+
+      <HistoryDetailModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
 
       <ConfirmModal
         isOpen={confirmModal.isOpen}

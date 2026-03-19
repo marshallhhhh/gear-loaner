@@ -1,6 +1,11 @@
 import prisma from '../config/prisma.js';
 import { parsePagination } from '../utils/pagination.js';
 
+// Helper: format location string
+function formatLoc(lat, lng) {
+  return lat != null && lng != null ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : '—';
+}
+
 export async function createFoundReport(req, res, next) {
   try {
     const { contactInfo, description, latitude, longitude } = req.body;
@@ -52,8 +57,14 @@ export async function listFoundReports(req, res, next) {
       prisma.foundReport.count({ where }),
     ]);
 
+    // Format reports with location information
+    const formattedReports = reports.map((report) => ({
+      ...report,
+      location: formatLoc(report.latitude, report.longitude),
+    }));
+
     res.json({
-      data: reports,
+      data: formattedReports,
       pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
     });
   } catch (err) {
