@@ -1,15 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import usePagination from '../../hooks/usePagination.js';
-import { formatDate } from '../../utils/formatDate.js';
+import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
+import DetailModal from '../../components/DetailModal.jsx';
 
 export default function LoanHistory() {
   const { getToken } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get('status') || '';
+  const [selectedLoan, setSelectedLoan] = useState(null);
 
   const {
     data: loans,
@@ -27,8 +29,8 @@ export default function LoanHistory() {
   async function handleOverride(loanId, action) {
     try {
       const body =
-        action === 'return'
-          ? { status: 'RETURNED' }
+        action === 'cancel'
+          ? { status: 'CANCELLED' }
           : { dueDate: new Date(Date.now() + 7 * 86400000).toISOString() }; // eslint-disable-line react-hooks/purity
 
       await api(`/loans/${loanId}/override`, {
@@ -89,7 +91,8 @@ export default function LoanHistory() {
             {loans.map((loan) => (
               <tr
                 key={loan.id}
-                className={`hover:bg-gray-50 ${isOverdue(loan) ? 'bg-red-50' : ''}`}
+                className={`hover:bg-gray-50 cursor-pointer ${isOverdue(loan) ? 'bg-red-50' : ''}`}
+                onClick={() => setSelectedLoan(loan)}
               >
                 <td className="px-4 py-3 font-medium">{loan.gearItem.name}</td>
                 <td className="px-4 py-3 text-gray-500">{loan.user.fullName || loan.user.email}</td>
@@ -114,11 +117,11 @@ export default function LoanHistory() {
                     {isOverdue(loan) ? 'OVERDUE' : loan.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right space-x-2">
+                <td className="px-4 py-3 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                   {loan.status === 'ACTIVE' && (
                     <>
                       <button
-                        onClick={() => handleOverride(loan.id, 'return')}
+                        onClick={() => handleOverride(loan.id, 'cancel')}
                         className="text-green-600 hover:underline text-xs"
                       >
                         Force Return
@@ -150,6 +153,47 @@ export default function LoanHistory() {
         onPageChange={fetchPage}
         shownCount={loans.length}
         label="loans"
+      />
+
+      <DetailModal
+        isOpen={!!selectedLoan}
+        title={selectedLoan ? selectedLoan.gearItem.name : ''}
+        badge={
+          selectedLoan ? (
+            <span
+              className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                isOverdue(selectedLoan)
+                  ? 'bg-red-100 text-red-800'
+                  : selectedLoan.status === 'ACTIVE'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-green-100 text-green-800'
+              }`}
+            >
+              {isOverdue(selectedLoan) ? 'OVERDUE' : selectedLoan.status}
+            </span>
+          ) : null
+        }
+        fields={
+          selectedLoan
+            ? [
+                { label: 'Item', value: selectedLoan.gearItem.name, type: 'gear', gearId: selectedLoan.gearItemId },
+                {
+                  label: 'User',
+                  value: selectedLoan.user.fullName || selectedLoan.user.email,
+                  type: 'user',
+                  userId: selectedLoan.userId,
+                },
+                { label: 'Checkout Date', value: formatDateTime(selectedLoan.checkoutDate) },
+                { label: 'Due Date', value: formatDateTime(selectedLoan.dueDate) },
+                {
+                  label: 'Return Date',
+                  value: selectedLoan.returnDate ? formatDateTime(selectedLoan.returnDate) : null,
+                },
+                { label: 'Notes', value: selectedLoan.notes, type: 'preWrap' },
+              ]
+            : []
+        }
+        onClose={() => setSelectedLoan(null)}
       />
     </div>
   );

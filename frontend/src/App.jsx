@@ -153,7 +153,7 @@ export default function App() {
 function Home() {
   return (
     <div className="text-center py-16">
-      <h1 className="text-4xl font-bold mb-4">🧗 TAS Climbing Gear</h1>
+      <h1 className="text-4xl font-bold mb-4">TUMC Gear</h1>
       <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
         Quick self-service checkout for climbing gear. Scan a QR code on any piece of equipment to
         check it out or return it.

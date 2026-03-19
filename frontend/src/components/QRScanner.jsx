@@ -52,7 +52,7 @@ export default function QRScanner({ onScan, onError }) {
 
       setScanning(true);
     } catch (err) {
-      const message = err?.message || String(err) || 'Failed to start camera';
+      const message = 'Failed to start camera';
       onError?.(message);
     }
   }

@@ -392,7 +392,7 @@ export default function GearManagement() {
             {gear.length === 0 && (
               <tr>
                 <td colSpan={6} className="text-center py-8 text-gray-400">
-                  No gear items found.
+                  No items found.
                 </td>
               </tr>
             )}
