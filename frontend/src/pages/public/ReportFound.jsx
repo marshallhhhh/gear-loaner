@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../../config/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useGeolocation from '../../hooks/useGeolocation.js';

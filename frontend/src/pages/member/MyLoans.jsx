@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
-import GearStatusBadge from '../../components/GearStatusBadge.jsx';
 import { formatDate } from '../../utils/formatDate.js';
 import { CameraIcon } from '@heroicons/react/24/outline';
 
@@ -12,20 +11,21 @@ export default function MyLoans() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
 
-  useEffect(() => {
-    async function fetch() {
-      try {
-        const data = await api('/loans/my', { token: await getToken() });
-        setLoans(data);
-        setFetchError('');
-      } catch (err) {
-        setFetchError(err.message);
-      } finally {
-        setLoading(false);
-      }
+  const fetchLoans = useCallback(async () => {
+    try {
+      const data = await api('/loans/my', { token: await getToken() });
+      setLoans(data);
+      setFetchError('');
+    } catch (err) {
+      setFetchError(err.message);
+    } finally {
+      setLoading(false);
     }
-    fetch();
-  }, []);
+  }, [getToken]);
+
+  useEffect(() => {
+    fetchLoans();
+  }, [fetchLoans]);
 
   if (loading) {
     return <div className="text-center py-20 text-gray-500">Loading your loans…</div>;

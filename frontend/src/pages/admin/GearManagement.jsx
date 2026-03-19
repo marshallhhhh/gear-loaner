@@ -108,29 +108,6 @@ export default function GearManagement() {
     }
   }
 
-  async function handleDelete(id) {
-    setConfirmModal({
-      isOpen: true,
-      message: 'Delete this gear item? This cannot be undone.',
-      confirmText: 'Delete',
-      isDangerous: true,
-      onConfirm: async () => {
-        try {
-          await api(`/gear/${id}`, { method: 'DELETE', token: await getToken() });
-          setSelectedIds((prev) => {
-            const next = new Set(prev);
-            next.delete(id);
-            return next;
-          });
-          setConfirmModal({ ...confirmModal, isOpen: false });
-          refetchCurrentPage();
-        } catch (err) {
-          alert(err.message);
-        }
-      },
-    });
-  }
-
   function toggleSelect(id) {
     setSelectedIds((prev) => {
       const next = new Set(prev);

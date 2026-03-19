@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
@@ -19,13 +19,7 @@ export default function GearLanding() {
   const [message, setMessage] = useState('');
   const getLocation = useGeolocation();
 
-  useEffect(() => {
-    // Wait until auth has resolved so the token (if any) is available
-    if (authLoading) return;
-    fetchGear();
-  }, [id, authLoading]);
-
-  async function fetchGear() {
+  const fetchGear = useCallback(async () => {
     try {
       const token = await getToken();
       const data = await api(`/gear/${id}`, { token });
@@ -36,7 +30,13 @@ export default function GearLanding() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [getToken, id]);
+
+  useEffect(() => {
+    // Wait until auth has resolved so the token (if any) is available
+    if (authLoading) return;
+    fetchGear();
+  }, [authLoading, fetchGear]);
 
   async function handleCheckout() {
     setCheckoutLoading(true);

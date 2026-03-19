@@ -21,16 +21,12 @@ export default function Navbar() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  useEffect(() => {
-    if (!isAuthenticated) setOpen(false);
-  }, [isAuthenticated]);
-
   const menuId = 'main-navigation';
 
   return (
     <header className="bg-primary-700 text-white shadow-md">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold tracking-tight">
+        <Link to="/" onClick={() => setOpen(false)} className="text-xl font-bold tracking-tight">
           TUMC Gear
         </Link>
 

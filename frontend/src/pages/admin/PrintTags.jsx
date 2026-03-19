@@ -17,13 +17,15 @@ export default function PrintTags() {
   const location = useLocation();
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const routeGearItems = location.state?.gearItems || [];
+  const routeGearItemsLength = routeGearItems.length;
 
-  const [gearItems, setGearItems] = useState(location.state?.gearItems || []);
-  const [loading, setLoading] = useState(!location.state?.gearItems);
+  const [gearItems, setGearItems] = useState(routeGearItems);
+  const [loading, setLoading] = useState(routeGearItemsLength === 0);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (location.state?.gearItems?.length) return; // already have items
+    if (routeGearItemsLength) return; // already have items
 
     async function fetchGear() {
       try {
@@ -54,7 +56,7 @@ export default function PrintTags() {
     }
 
     fetchGear();
-  }, []);
+  }, [getToken, location.search, routeGearItemsLength]);
 
   if (loading) {
     return <div className="text-center py-20 text-gray-500">Loading gear…</div>;

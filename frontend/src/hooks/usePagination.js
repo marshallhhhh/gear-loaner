@@ -38,7 +38,7 @@ export default function usePagination(endpoint, { pageSize = 50, extraParams = {
       } finally {
         setLoading(false);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
     },
     [endpoint, pageSize, getToken, JSON.stringify(extraParams)],
   );

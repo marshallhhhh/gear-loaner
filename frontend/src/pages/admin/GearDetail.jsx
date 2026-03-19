@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
@@ -112,21 +112,16 @@ export default function GearDetail() {
     isDangerous: false,
   });
 
-  useEffect(() => {
-    fetchDetail();
-    fetchCategories();
-  }, [id]);
-
-  async function fetchCategories() {
+  const fetchCategories = useCallback(async () => {
     try {
       const data = await api('/gear/categories', { token: await getToken() });
       setCategories(data);
     } catch (err) {
       console.error('Failed to load categories:', err.message);
     }
-  }
+  }, [getToken]);
 
-  async function fetchDetail() {
+  const fetchDetail = useCallback(async () => {
     try {
       setLoading(true);
       const data = await api(`/admin/gear/${id}`, { token: await getToken() });
@@ -141,7 +136,12 @@ export default function GearDetail() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [getToken, id, populateForm]);
+
+  useEffect(() => {
+    fetchDetail();
+    fetchCategories();
+  }, [fetchCategories, fetchDetail]);
 
   async function handleCloseReports() {
     setConfirmModal({

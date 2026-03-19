@@ -16,7 +16,7 @@ export default function QRScanner({ onScan, onError }) {
           .finally(() => {
             try {
               s.clear();
-            } catch (_e) {
+            } catch {
               /* scanner may already be cleared */
             }
           });
@@ -52,7 +52,7 @@ export default function QRScanner({ onScan, onError }) {
       );
 
       setScanning(true);
-    } catch (err) {
+    } catch {
       const message = 'Failed to start camera';
       onError?.(message);
     }
@@ -66,7 +66,7 @@ export default function QRScanner({ onScan, onError }) {
         .finally(() => {
           try {
             s.clear();
-          } catch (_e) {
+          } catch {
             /* scanner may already be cleared */
           }
         });

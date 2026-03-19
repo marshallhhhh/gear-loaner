@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import { formatDateTime } from '../../utils/formatDate.js';
@@ -23,11 +23,7 @@ export default function FoundReports() {
     onConfirm: null,
   });
 
-  useEffect(() => {
-    fetchReports(1);
-  }, [statusFilter]);
-
-  async function fetchReports(page = 1) {
+  const fetchReports = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       const params = new URLSearchParams({ page, pageSize: 50 });
@@ -42,7 +38,11 @@ export default function FoundReports() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [getToken, statusFilter]);
+
+  useEffect(() => {
+    fetchReports(1);
+  }, [fetchReports]);
 
   async function handleClose(reportId) {
     setConfirmModal({
