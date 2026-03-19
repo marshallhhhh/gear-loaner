@@ -337,7 +337,6 @@ export default function GearManagement() {
               <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Category</th>
               <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Gear ID</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-right px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -373,18 +372,9 @@ export default function GearManagement() {
                       e.stopPropagation();
                       handleEdit(item);
                     }}
-                    className="text-primary-600 hover:underline text-xs"
+                    className="text-primary-600 hover:underline text-sm"
                   >
                     Edit
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(item.id);
-                    }}
-                    className="text-red-600 hover:underline text-xs"
-                  >
-                    Delete
                   </button>
                 </td>
               </tr>

@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
+import { useAuth } from './context/AuthContext.jsx';
 import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
@@ -160,6 +161,8 @@ export default function App() {
 }
 
 function Home() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <div className="text-center py-16">
       <h1 className="text-4xl font-bold mb-4">TUMC Gear</h1>
@@ -174,12 +177,14 @@ function Home() {
         >
           📷 Scan QR Code
         </Link>
-        <Link
-          to="/login"
-          className="border border-primary-600 text-primary-600 hover:bg-primary-50 px-6 py-3 rounded-lg font-medium"
-        >
-          Sign In
-        </Link>
+        {!isAuthenticated && (
+          <Link
+            to="/login"
+            className="border border-primary-600 text-primary-600 hover:bg-primary-50 px-6 py-3 rounded-lg font-medium"
+          >
+            Sign In
+          </Link>
+        )}
       </div>
     </div>
   );
