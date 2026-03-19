@@ -297,7 +297,7 @@ export async function overrideLoan(req, res, next) {
     const data = {};
     if (status) data.status = status;
     if (dueDate) data.dueDate = new Date(dueDate);
-    if (status === 'RETURNED') data.returnDate = new Date();
+    if (status === 'CANCELLED') data.returnDate = new Date();
     if (notes !== undefined) data.notes = notes;
 
     const loan = await prisma.$transaction(async (tx) => {
@@ -306,7 +306,7 @@ export async function overrideLoan(req, res, next) {
         data,
         include: { gearItem: true },
       });
-      if (status === 'RETURNED') {
+      if (status === 'CANCELLED') {
         await tx.gear.update({
           where: { id: updated.gearItemId },
           data: { loanStatus: 'AVAILABLE' },

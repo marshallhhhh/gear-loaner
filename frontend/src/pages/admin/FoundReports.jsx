@@ -4,7 +4,9 @@ import { api } from '../../config/api.js';
 import { formatDateTime } from '../../utils/formatDate.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
-import HistoryDetailModal from '../../components/HistoryDetailModal.jsx';
+import ActionBadge from '../../components/ActionBadge.jsx';
+import DetailModal from '../../components/DetailModal.jsx';
+import { buildHistoryFields } from '../../utils/historyFields.js';
 
 export default function FoundReports() {
   const { getToken } = useAuth();
@@ -191,7 +193,13 @@ export default function FoundReports() {
         label="reports"
       />
 
-      <HistoryDetailModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
+      <DetailModal
+        isOpen={!!selectedEntry}
+        title={selectedEntry ? `${selectedEntry.action} Details` : ''}
+        badge={selectedEntry ? <ActionBadge action={selectedEntry.action} /> : null}
+        fields={selectedEntry ? buildHistoryFields(selectedEntry) : []}
+        onClose={() => setSelectedEntry(null)}
+      />
 
       <ConfirmModal
         isOpen={confirmModal.isOpen}

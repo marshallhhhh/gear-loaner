@@ -14,6 +14,7 @@ const GearManagement = lazy(() => import('./pages/admin/GearManagement.jsx'));
 const GearDetail = lazy(() => import('./pages/admin/GearDetail.jsx'));
 const LoanHistory = lazy(() => import('./pages/admin/LoanHistory.jsx'));
 const UserManagement = lazy(() => import('./pages/admin/UserManagement.jsx'));
+const UserDetail = lazy(() => import('./pages/admin/UserDetail.jsx'));
 const PrintTags = lazy(() => import('./pages/admin/PrintTags.jsx'));
 const FoundReports = lazy(() => import('./pages/admin/FoundReports.jsx'));
 
@@ -125,6 +126,14 @@ export default function App() {
               }
             />
             <Route
+              path="/admin/users/:id"
+              element={
+                <ProtectedRoute adminOnly>
+                  <UserDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/print-tags"
               element={
                 <ProtectedRoute adminOnly>
@@ -153,7 +162,7 @@ export default function App() {
 function Home() {
   return (
     <div className="text-center py-16">
-      <h1 className="text-4xl font-bold mb-4">🧗 TAS Climbing Gear</h1>
+      <h1 className="text-4xl font-bold mb-4">TUMC Gear</h1>
       <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
         Quick self-service checkout for climbing gear. Scan a QR code on any piece of equipment to
         check it out or return it.

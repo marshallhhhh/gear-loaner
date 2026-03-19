@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
@@ -8,6 +9,7 @@ import { formatDate } from '../../utils/formatDate.js';
 
 export default function UserManagement() {
   const { getToken } = useAuth();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [confirmModal, setConfirmModal] = useState({
@@ -102,7 +104,11 @@ export default function UserManagement() {
           </thead>
           <tbody className="divide-y">
             {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
+              <tr
+                key={user.id}
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => navigate(`/admin/users/${user.id}`)}
+              >
                 <td className="px-4 py-3 font-medium">{user.fullName || '—'}</td>
                 <td className="px-4 py-3 text-gray-500">{user.email}</td>
                 <td className="px-4 py-3">
@@ -128,7 +134,7 @@ export default function UserManagement() {
                 <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
                   {formatDate(user.createdAt)}
                 </td>
-                <td className="px-4 py-3 text-right space-x-2">
+                <td className="px-4 py-3 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => toggleRole(user.id, user.role)}
                     className="text-primary-600 hover:underline text-xs"

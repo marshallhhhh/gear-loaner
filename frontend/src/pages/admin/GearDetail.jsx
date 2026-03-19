@@ -5,8 +5,9 @@ import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/GearStatusBadge.jsx';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import ActionBadge from '../../components/ActionBadge.jsx';
-import HistoryDetailModal from '../../components/HistoryDetailModal.jsx';
+import DetailModal from '../../components/DetailModal.jsx';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
+import { buildHistoryFields } from '../../utils/historyFields.js';
 import useGearForm from '../../hooks/useGearForm.js';
 
 /**
@@ -239,7 +240,7 @@ export default function GearDetail() {
       {/* Back link */}
       <button
         onClick={() => navigate('/admin/gear')}
-        className="text-primary-600 hover:underline text-sm mb-4 inline-block"
+        className="text-primary-600 hover:underline text-md mb-4 inline-block"
       >
         ← Back to inventory
       </button>
@@ -251,7 +252,7 @@ export default function GearDetail() {
           <p className="text-gray-500 text-sm font-mono mt-1">{gear.shortId || gear.id}</p>
         </div>
         <div className="flex items-center gap-3">
-          <GearStatusBadge status={gear.loanStatus} reportedFound={hasOpenReports} />
+          <GearStatusBadge status={gear.loanStatus} reportedFound={hasOpenReports} size="medium" />
           {!editing && (
             <>
               <button
@@ -608,7 +609,13 @@ export default function GearDetail() {
       </div>
 
       {/* Found Report / Checkout / Return Detail Modal */}
-      <HistoryDetailModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
+      <DetailModal
+        isOpen={!!selectedEntry}
+        title={selectedEntry ? `${selectedEntry.action} Details` : ''}
+        badge={selectedEntry ? <ActionBadge action={selectedEntry.action} /> : null}
+        fields={selectedEntry ? buildHistoryFields(selectedEntry) : []}
+        onClose={() => setSelectedEntry(null)}
+      />
 
       {/* Confirm Modal */}
       <ConfirmModal

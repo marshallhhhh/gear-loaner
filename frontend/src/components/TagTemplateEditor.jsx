@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import QRCode from 'qrcode';
-import DEFAULT_TEMPLATE from './tagTemplate.html?raw';
+import TagTemplate from './TagTemplate';
 
 // ── Predefined page sizes (mm) ──────────────────────────────────────
 const PAGE_SIZES = {
@@ -10,25 +11,18 @@ const PAGE_SIZES = {
   '4x6': { width: 102, height: 152, label: '4×6" (102 × 152 mm)' },
 };
 
-// ── Available placeholders ───────────────────────────────────────────
-const PLACEHOLDERS = [
-  { token: '{{ Name }}', description: 'Gear name' },
-  { token: '{{ ShortId }}', description: 'Short ID (e.g. HAR-A1B)' },
-  { token: '{{ Category }}', description: 'Category name' },
-  { token: '{{ SerialNumber }}', description: 'Serial number' },
-  { token: '{{ Description }}', description: 'Description text' },
-  { token: '{{ QRCode }}', description: 'QR code image (data URL)' },
-  { token: '{{ Tags }}', description: 'Comma-separated tags' },
-  { token: '{{ DefaultLoanDays }}', description: 'Default loan period' },
-];
-
 // ── Storage key ──────────────────────────────────────────────────────
 const STORAGE_KEY = 'gear-tag-template-config';
 
 function loadSavedConfig() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Strip legacy `template` field that stored raw user-editable HTML
+      const { template: _ignored, ...rest } = parsed;
+      return rest;
+    }
   } catch {
     /* ignore */
   }
@@ -48,56 +42,40 @@ const DEFAULT_CONFIG = {
   pageSize: 'A4',
   rows: 3,
   cols: 2,
-  paddingX: 6,
-  paddingY: 6,
+  paddingX: 0,
+  paddingY: 0,
   marginTop: 10,
   marginBottom: 10,
-  marginLeft: 10,
-  marginRight: 10,
-  template: DEFAULT_TEMPLATE,
+  marginLeft: 8,
+  marginRight: 8,
 };
 
-// ── HTML escaping to prevent XSS ─────────────────────────────────────
-function escapeHtml(str) {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+// ── Resolve cq* units to absolute mm for print ───────────────────────
+// PDF renderers are inconsistent with container query units, so we
+// convert them to absolute mm values before writing to the print window.
+function resolveCqUnits(html, cellWmm, cellHmm) {
+  const cqMin = Math.min(cellWmm, cellHmm);
+  return html
+    .replace(/(\d+(?:\.\d+)?)cqmin/g, (_, n) => `${((parseFloat(n) * cqMin) / 100).toFixed(3)}mm`)
+    .replace(/(\d+(?:\.\d+)?)cqw/g, (_, n) => `${((parseFloat(n) * cellWmm) / 100).toFixed(3)}mm`)
+    .replace(/(\d+(?:\.\d+)?)cqh/g, (_, n) => `${((parseFloat(n) * cellHmm) / 100).toFixed(3)}mm`);
 }
 
-// ── Interpolate placeholders with gear data ──────────────────────────
+// ── QR code generation ───────────────────────────────────────────────
 const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
-async function renderTemplate(template, gear) {
-  // Generate QR code data URL for this gear item
+async function generateQrDataUrl(gear) {
   const qrTarget = gear.shortId || gear.id;
   const qrContent = `${APP_URL}/gear/${qrTarget}`;
-  let qrDataUrl = '';
   try {
-    qrDataUrl = await QRCode.toDataURL(qrContent, {
+    return await QRCode.toDataURL(qrContent, {
       width: 200,
       margin: 1,
       color: { dark: '#000000', light: '#ffffff' },
     });
   } catch {
-    /* fallback: leave empty */
+    return '';
   }
-
-  let html = template;
-  html = html.replace(/\{\{\s*Name\s*\}\}/g, escapeHtml(gear.name || ''));
-  html = html.replace(/\{\{\s*ShortId\s*\}\}/g, escapeHtml(gear.shortId || ''));
-  html = html.replace(/\{\{\s*Category\s*\}\}/g, escapeHtml(gear.category || ''));
-  html = html.replace(/\{\{\s*SerialNumber\s*\}\}/g, escapeHtml(gear.serialNumber || ''));
-  html = html.replace(/\{\{\s*Description\s*\}\}/g, escapeHtml(gear.description || ''));
-  html = html.replace(/\{\{\s*QRCode\s*\}\}/g, qrDataUrl);
-  html = html.replace(/\{\{\s*Tags\s*\}\}/g, escapeHtml((gear.tags || []).join(', ')));
-  html = html.replace(
-    /\{\{\s*DefaultLoanDays\s*\}\}/g,
-    escapeHtml(String(gear.defaultLoanDays ?? '')),
-  );
-  return html;
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -105,9 +83,8 @@ async function renderTemplate(template, gear) {
 export default function TagTemplateEditor({ gearItems = [], onClose }) {
   const saved = loadSavedConfig();
   const [config, setConfig] = useState(saved || DEFAULT_CONFIG);
-  const [renderedTags, setRenderedTags] = useState([]);
-  const [showPlaceholders, setShowPlaceholders] = useState(false);
-  const printRef = useRef(null);
+  // Map of (gear.shortId || gear.id) -> QR data URL
+  const [qrDataUrls, setQrDataUrls] = useState({});
 
   // Persist config on change
   useEffect(() => {
@@ -123,18 +100,24 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  // Re-render tags whenever config template or gear items change
+  // Generate QR codes for all gear items
   useEffect(() => {
     let cancelled = false;
-    async function render() {
-      const results = await Promise.all(gearItems.map((g) => renderTemplate(config.template, g)));
-      if (!cancelled) setRenderedTags(results);
+    async function generate() {
+      const entries = await Promise.all(
+        gearItems.map(async (gear) => {
+          const key = gear.shortId || gear.id;
+          const dataUrl = await generateQrDataUrl(gear);
+          return [key, dataUrl];
+        }),
+      );
+      if (!cancelled) setQrDataUrls(Object.fromEntries(entries));
     }
-    render();
+    generate();
     return () => {
       cancelled = true;
     };
-  }, [config.template, gearItems]);
+  }, [gearItems]);
 
   const page = PAGE_SIZES[config.pageSize] || PAGE_SIZES.A4;
 
@@ -149,10 +132,10 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
   const tagsPerPage = config.rows * config.cols;
   const totalPages = Math.ceil(gearItems.length / tagsPerPage) || 1;
 
-  // Group tags into pages
+  // Group gear into pages
   const pages = [];
   for (let p = 0; p < totalPages; p++) {
-    pages.push(renderedTags.slice(p * tagsPerPage, (p + 1) * tagsPerPage));
+    pages.push(gearItems.slice(p * tagsPerPage, (p + 1) * tagsPerPage));
   }
 
   function handlePrint() {
@@ -162,64 +145,76 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
       return;
     }
 
-    const pagesHtml = pages
-      .map((pageTags, pageIdx) => {
-        const cells = pageTags
-          .map(
-            (html, i) => `
-        <div style="
-          width: ${cellW}mm;
-          height: ${cellH}mm;
-          overflow: hidden;
-          border: 1px dashed #ccc;
-          box-sizing: border-box;
-          container-type: size;
-        ">${html}</div>
-      `,
-          )
-          .join('');
+    // Load background image as data URL to ensure it works in blob context
+    const loadBackgroundImage = async () => {
+      try {
+        const response = await fetch('/static/qr_tag_background.png');
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+      } catch {
+        return '/static/qr_tag_background.png'; // Fallback to relative URL
+      }
+    };
 
-        return `
-        <div class="print-page" style="
-          width: ${page.width}mm;
-          height: ${page.height}mm;
-          padding: ${config.marginTop}mm ${config.marginRight}mm ${config.marginBottom}mm ${config.marginLeft}mm;
-          display: grid;
-          grid-template-columns: repeat(${config.cols}, ${cellW}mm);
-          grid-template-rows: repeat(${config.rows}, ${cellH}mm);
-          gap: ${config.paddingY}mm ${config.paddingX}mm;
-          box-sizing: border-box;
-          page-break-after: always;
-        ">${cells}</div>
+    loadBackgroundImage().then((bgImageUrl) => {
+      // Build each page using renderToStaticMarkup so all gear field values
+      const pagesHtml = pages
+        .map((pageTags) => {
+          const cells = pageTags
+            .map((gear) => {
+              const qrDataUrl = qrDataUrls[gear.shortId || gear.id] ?? '';
+              // Replace relative URL with absolute or data URL
+              let tagHtml = renderToStaticMarkup(<TagTemplate gear={gear} qrDataUrl={qrDataUrl} />);
+              tagHtml = tagHtml.replace(
+                /url\(\/static\/qr_tag_background\.png\)/g,
+                `url(${bgImageUrl})`,
+              );
+              tagHtml = resolveCqUnits(tagHtml, cellW, cellH);
+              return `<div style="width:${cellW}mm;height:${cellH}mm;overflow:hidden;border:1px dashed #ccc;box-sizing:border-box;container-type:size;">${tagHtml}</div>`;
+            })
+            .join('');
+
+          return `<div class="print-page" style="width:${page.width}mm;height:${page.height}mm;padding:${config.marginTop}mm ${config.marginRight}mm ${config.marginBottom}mm ${config.marginLeft}mm;display:grid;grid-template-columns:repeat(${config.cols},${cellW}mm);grid-template-rows:repeat(${config.rows},${cellH}mm);gap:${config.paddingY}mm ${config.paddingX}mm;box-sizing:border-box;page-break-after:always;">${cells}</div>`;
+        })
+        .join('');
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Gear Tags</title>
+          <style>
+            @page {
+              size: ${page.width}mm ${page.height}mm;
+              margin: 0;
+            }
+            * { margin: 0; padding: 0; }
+            body { margin: 0; }
+            .print-page:last-child { page-break-after: avoid; }
+            @media print {
+              .print-page { border: none; }
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+            }
+          </style>
+        </head>
+        <body>${pagesHtml}</body>
+        </html>
       `;
-      })
-      .join('');
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Gear Tags</title>
-        <style>
-          @page {
-            size: ${page.width}mm ${page.height}mm;
-            margin: 0;
-          }
-          * { margin: 0; padding: 0; }
-          body { margin: 0; }
-          .print-page:last-child { page-break-after: avoid; }
-          @media print {
-            .print-page { border: none; }
-            .print-page div { border-color: transparent !important; }
-          }
-        </style>
-      </head>
-      <body>${pagesHtml}</body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 500);
+      const htmlBlob = new Blob([html], { type: 'text/html' });
+      const htmlUrl = URL.createObjectURL(htmlBlob);
+      printWindow.location.href = htmlUrl;
+
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        URL.revokeObjectURL(htmlUrl);
+      }, 500);
+    });
   }
 
   function handleReset() {
@@ -231,7 +226,7 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
   }
 
   // Preview scaling: fit page into a ~360px-wide container
-  const previewScale = 360 / ((page.width / 25.4) * 96);
+  const previewScale = 800 / ((page.width / 25.4) * 96);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center overflow-y-auto py-8">
@@ -258,7 +253,7 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
 
         <div className="flex flex-1 overflow-hidden">
           {/* ── Left sidebar: settings ────────────────────────────── */}
-          <div className="w-80 border-r overflow-y-auto p-4 space-y-4 text-sm flex-shrink-0">
+          <div className="w-72 border-r overflow-y-auto p-4 space-y-4 text-sm flex-shrink-0">
             {/* Page size */}
             <div>
               <label className="block font-medium mb-1">Page Size</label>
@@ -296,32 +291,6 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
                   max={20}
                   value={config.rows}
                   onChange={(e) => set('rows', Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-            </div>
-
-            {/* Padding between tags */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-medium mb-1">Gap X (mm)</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={50}
-                  value={config.paddingX}
-                  onChange={(e) => set('paddingX', Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block font-medium mb-1">Gap Y (mm)</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={50}
-                  value={config.paddingY}
-                  onChange={(e) => set('paddingY', Math.max(0, parseInt(e.target.value) || 0))}
                   className="w-full border rounded-lg px-3 py-2"
                 />
               </div>
@@ -402,8 +371,8 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
           </div>
 
           {/* ── Center: preview ───────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
-            <div className="space-y-8">
+          <div className="flex-1 overflow-y-auto bg-gray-100 p-3">
+            <div className="space-y-4">
               {pages.map((pageTags, pageIdx) => (
                 <div key={pageIdx}>
                   <p className="text-xs text-gray-500 mb-2 font-medium">
@@ -418,7 +387,6 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
                     }}
                   >
                     <div
-                      ref={pageIdx === 0 ? printRef : undefined}
                       style={{
                         width: `${page.width}mm`,
                         height: `${page.height}mm`,
@@ -432,19 +400,23 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
                         boxShadow: '0 2px 8px rgba(0,0,0,.15)',
                       }}
                     >
-                      {pageTags.map((html, i) => (
+                      {pageTags.map((gear, i) => (
                         <div
-                          key={i}
+                          key={gear.id || i}
                           style={{
                             width: `${cellW}mm`,
                             height: `${cellH}mm`,
                             overflow: 'hidden',
-                            border: '1px dashed #d1d5db',
+                            border: '2px dashed #d1d5db',
                             boxSizing: 'border-box',
                             containerType: 'size',
                           }}
-                          dangerouslySetInnerHTML={{ __html: html }}
-                        />
+                        >
+                          <TagTemplate
+                            gear={gear}
+                            qrDataUrl={qrDataUrls[gear.shortId || gear.id] ?? ''}
+                          />
+                        </div>
                       ))}
                       {/* Fill remaining cells with empty slots */}
                       {Array.from({ length: tagsPerPage - pageTags.length }).map((_, i) => (
@@ -453,7 +425,7 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
                           style={{
                             width: `${cellW}mm`,
                             height: `${cellH}mm`,
-                            border: '1px dashed #e5e7eb',
+                            border: '2px dashed #e5e7eb',
                             boxSizing: 'border-box',
                             display: 'flex',
                             alignItems: 'center',
@@ -468,51 +440,9 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
                     </div>
                   </div>
                   {/* Spacer so the scaled page doesn't overlap the next */}
-                  <div style={{ height: `${page.height * previewScale * (25.4 / 25.4)}mm` }} />
+                  <div style={{ height: `${(page.height * previewScale) / 4}px` }} />
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* ── Right sidebar: template editor ────────────────────── */}
-          <div className="w-96 border-l overflow-y-auto p-4 space-y-4 text-sm flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <label className="font-medium">HTML Template</label>
-              <button
-                onClick={() => setShowPlaceholders(!showPlaceholders)}
-                className="text-primary-600 hover:underline text-xs"
-              >
-                {showPlaceholders ? 'Hide' : 'Show'} placeholders
-              </button>
-            </div>
-
-            {showPlaceholders && (
-              <div className="bg-blue-50 rounded-lg p-3 space-y-1">
-                <p className="font-medium text-blue-800 text-xs mb-2">Available Placeholders</p>
-                {PLACEHOLDERS.map((p) => (
-                  <div key={p.token} className="flex justify-between text-xs">
-                    <code className="text-blue-700 bg-blue-100 px-1 rounded">{p.token}</code>
-                    <span className="text-blue-600">{p.description}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <textarea
-              value={config.template}
-              onChange={(e) => set('template', e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 font-mono text-xs leading-relaxed"
-              rows={20}
-              spellCheck={false}
-            />
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
-              <strong>Tip:</strong> The template is rendered inside a cell of size{' '}
-              <strong>
-                {cellW.toFixed(1)} × {cellH.toFixed(1)} mm
-              </strong>
-              . Use inline styles for best results. The <code>{'{{ QRCode }}'}</code> placeholder
-              inserts a data-URL you can use in an <code>&lt;img&gt;</code> tag.
             </div>
           </div>
         </div>
@@ -521,4 +451,4 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
   );
 }
 
-export { DEFAULT_TEMPLATE, PLACEHOLDERS, PAGE_SIZES, renderTemplate };
+export { PAGE_SIZES };

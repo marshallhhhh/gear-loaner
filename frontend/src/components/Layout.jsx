@@ -15,7 +15,7 @@ export default function Layout({ children }) {
       <header className="bg-primary-700 text-white shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="text-xl font-bold tracking-tight">
-            🧗 TAS Climbing Gear
+            TUMC Gear
           </Link>
 
           <nav className="flex items-center gap-4 text-sm">
@@ -74,7 +74,7 @@ export default function Layout({ children }) {
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">{children}</main>
 
       <footer className="text-center text-xs text-gray-400 py-4 border-t">
-        TAS University Climbing Club — Gear Management System
+        Tas University Mountaineering Club — Gear Management System
       </footer>
     </div>
   );

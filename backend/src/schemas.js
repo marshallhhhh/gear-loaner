@@ -5,7 +5,7 @@ import { z } from 'zod';
 const latitude = z.number().min(-90).max(90);
 const longitude = z.number().min(-180).max(180);
 const GearStatus = z.enum(['AVAILABLE', 'CHECKED_OUT', 'LOST', 'RETIRED']);
-const LoanStatus = z.enum(['ACTIVE', 'RETURNED']);
+const LoanStatus = z.enum(['ACTIVE', 'RETURNED', 'CANCELLED']);
 const Role = z.enum(['MEMBER', 'ADMIN']);
 
 /** Reusable page / pageSize params for list endpoints. */
