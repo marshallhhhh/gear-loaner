@@ -210,7 +210,7 @@ export default function GearManagement() {
           <option value="AVAILABLE">Available</option>
           <option value="CHECKED_OUT">Checked Out</option>
           <option value="LOST">Lost</option>
-          <option value="REPORTED_FOUND">Reported Found</option>
+          <option value="HAS_OPEN_REPORTS">Has Open Found Reports</option>
           <option value="RETIRED">Retired</option>
         </select>
       </div>

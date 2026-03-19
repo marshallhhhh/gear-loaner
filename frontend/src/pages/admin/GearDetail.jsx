@@ -41,7 +41,7 @@ export default function GearDetail() {
   const [gear, setGear] = useState(null);
   const [activeLoan, setActiveLoan] = useState(null);
   const [history, setHistory] = useState([]);
-  const [isReportedFound, setIsReportedFound] = useState(false);
+  const [hasOpenReports, setHasOpenReports] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState('');
@@ -96,7 +96,7 @@ export default function GearDetail() {
       setGear(data.gear);
       setActiveLoan(data.activeLoan);
       setHistory(data.history);
-      setIsReportedFound(data.isReportedFound ?? false);
+      setHasOpenReports(data.hasOpenReports ?? false);
 
       populateForm(data.gear);
     } catch (err) {
@@ -106,17 +106,17 @@ export default function GearDetail() {
     }
   }
 
-  async function handleMarkFound() {
+  async function handleCloseReports() {
     setConfirmModal({
       isOpen: true,
-      message: 'Mark this reported-found alert as resolved? The item will no longer appear in the Reported Found list.',
-      confirmText: 'Mark Found',
+      message: 'Close all open found reports for this item? They will be marked as resolved.',
+      confirmText: 'Close Reports',
       isDangerous: false,
       onConfirm: async () => {
         setStatusChanging(true);
         setError('');
         try {
-          await api(`/admin/gear/${id}/mark-found`, {
+          await api(`/admin/gear/${id}/close-reports`, {
             method: 'POST',
             token: await getToken(),
           });
@@ -215,7 +215,7 @@ export default function GearDetail() {
           <p className="text-gray-500 text-sm font-mono mt-1">{gear.shortId || gear.id}</p>
         </div>
         <div className="flex items-center gap-3">
-          <GearStatusBadge status={gear.loanStatus} />
+          <GearStatusBadge status={gear.loanStatus} reportedFound={hasOpenReports} />
           {!editing && (
             <>
               <button
@@ -240,9 +240,8 @@ export default function GearDetail() {
       </div>
 
       {/* Status Action Buttons */}
-      {!editing && (STATUS_TRANSITIONS[gear.loanStatus] || isReportedFound) && (
+      {!editing && (STATUS_TRANSITIONS[gear.loanStatus] || hasOpenReports) && (
         <div className="bg-white rounded-xl shadow p-4 mb-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Status Actions</h3>
           <div className="flex flex-wrap gap-2">
             {STATUS_TRANSITIONS[gear.loanStatus]?.map(({ newStatus, label, colorClass }) => (
               <button
@@ -254,13 +253,13 @@ export default function GearDetail() {
                 {statusChanging ? '…' : label}
               </button>
             ))}
-            {isReportedFound && (
+            {hasOpenReports && (
               <button
-                onClick={handleMarkFound}
+                onClick={handleCloseReports}
                 disabled={statusChanging}
                 className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {statusChanging ? '…' : 'Mark Found'}
+                {statusChanging ? '…' : 'Close Found Reports'}
               </button>
             )}
           </div>
@@ -269,9 +268,9 @@ export default function GearDetail() {
               Changing status from Checked Out will cancel the active loan.
             </p>
           )}
-          {isReportedFound && (
+          {hasOpenReports && (
             <p className="text-xs text-amber-600 mt-2">
-              This item was reported found
+              This item has open found reports
             </p>
           )}
         </div>

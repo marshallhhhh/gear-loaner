@@ -1,6 +1,6 @@
 import prisma from '../config/prisma.js';
 import { stringify } from 'csv-stringify/sync';
-import { getActiveReportedFoundGearIds } from '../services/reportedFoundService.js';
+import { getGearIdsWithOpenReports, countOpenReports } from '../services/foundReportService.js';
 import { categoryName, normalizeGearCategory } from '../services/normalize.js';
 import logger from '../config/logger.js';
 
@@ -71,7 +71,7 @@ export async function exportGear(req, res, next) {
 
 export async function getDashboardStats(req, res, next) {
   try {
-    const [totalGear, availableGear, checkedOut, lost, activeLoans, overdueLoans, totalUsers] =
+    const [totalGear, availableGear, checkedOut, lost, activeLoans, overdueLoans, totalUsers, openFoundReports] =
       await Promise.all([
         prisma.gear.count(),
         prisma.gear.count({ where: { loanStatus: 'AVAILABLE' } }),
@@ -80,25 +80,15 @@ export async function getDashboardStats(req, res, next) {
         prisma.loan.count({ where: { status: 'ACTIVE' } }),
         prisma.loan.count({ where: { status: 'ACTIVE', dueDate: { lt: new Date() } } }),
         prisma.profile.count(),
+        countOpenReports(),
       ]);
-
-    // Only count items whose most recent Action is REPORT_FOUND
-    const activeReportedFoundIds = await getActiveReportedFoundGearIds();
-    const confirmedLostIds = new Set(
-      (await prisma.gear.findMany({ where: { loanStatus: 'LOST' }, select: { id: true } })).map(
-        (g) => g.id,
-      ),
-    );
-    const reportedFound = [...activeReportedFoundIds].filter(
-      (id) => !confirmedLostIds.has(id),
-    ).length;
 
     res.json({
       totalGear,
       availableGear,
       checkedOut,
       lost,
-      reportedFound,
+      openFoundReports,
       activeLoans,
       overdueLoans,
       totalUsers,
@@ -159,6 +149,13 @@ export async function getAdminGearDetail(req, res, next) {
           },
           orderBy: { createdAt: 'desc' },
         },
+        foundReports: {
+          include: {
+            reporter: { select: { id: true, email: true, fullName: true } },
+            closedByAdmin: { select: { id: true, email: true, fullName: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 
@@ -178,7 +175,6 @@ export async function getAdminGearDetail(req, res, next) {
     const actionLabels = {
       CHECKOUT: 'Checkout',
       RETURN: 'Return',
-      REPORT_LOST: 'Reported Lost',
       REPORT_FOUND: 'Reported Found',
       ADMIN_REPORT_LOST: 'Marked Lost',
       ADMIN_MADE_AVAILABLE: 'Marked Available',
@@ -197,28 +193,45 @@ export async function getAdminGearDetail(req, res, next) {
       details: action.details || null,
     }));
 
+    // Merge found reports into the unified history timeline
+    for (const report of gear.foundReports) {
+      history.push({
+        time: report.createdAt,
+        user: report.reporter?.fullName || report.reporter?.email || 'Anonymous',
+        userId: report.reportedBy,
+        location: formatLoc(report.latitude, report.longitude),
+        action: 'Reported Found',
+        details: {
+          contactInfo: report.contactInfo,
+          notes: report.description,
+          reportId: report.id,
+          reportStatus: report.status,
+        },
+      });
+    }
+
     // Sort by time descending
     history.sort((a, b) => new Date(b.time) - new Date(a.time));
 
     // Normalize category relation to string (legacy frontend shape)
     normalizeGearCategory(gear);
 
-    // Check if there is a pending reported-found alert for this gear
-    const activeReportedFoundIds = await getActiveReportedFoundGearIds();
-    const isReportedFound = activeReportedFoundIds.has(gearId);
+    // Check if there are open found reports for this gear
+    const hasOpenReports = gear.foundReports.some((r) => r.status === 'OPEN');
 
     res.json({
       gear,
       activeLoan,
       history,
-      isReportedFound,
+      hasOpenReports,
+      foundReports: gear.foundReports,
     });
   } catch (err) {
     next(err);
   }
 }
 
-export async function markFound(req, res, next) {
+export async function closeAllOpenReports(req, res, next) {
   try {
     const gearId = req.params.id;
 
@@ -227,23 +240,18 @@ export async function markFound(req, res, next) {
       return res.status(404).json({ error: 'Gear not found' });
     }
 
-    // Verify there is actually a pending reported-found alert
-    const activeReportedFoundIds = await getActiveReportedFoundGearIds();
-    if (!activeReportedFoundIds.has(gearId)) {
-      return res.status(400).json({ error: 'No active reported-found alert for this item' });
-    }
-
-    await prisma.action.create({
-      data: {
-        type: 'ADMIN_MARK_FOUND',
-        userId: req.profile.id,
-        gearItemId: gearId,
-      },
+    const result = await prisma.foundReport.updateMany({
+      where: { gearItemId: gearId, status: 'OPEN' },
+      data: { status: 'CLOSED', closedAt: new Date(), closedBy: req.profile.id },
     });
 
-    logger.info({ gearId, adminId: req.profile.id }, 'Admin dismissed reported-found alert');
+    if (result.count === 0) {
+      return res.status(400).json({ error: 'No open found reports for this item' });
+    }
 
-    res.json({ success: true });
+    logger.info({ gearId, adminId: req.profile.id, count: result.count }, 'Admin closed all open found reports for gear');
+
+    res.json({ success: true, closedCount: result.count });
   } catch (err) {
     next(err);
   }

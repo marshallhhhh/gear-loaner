@@ -37,6 +37,8 @@ model Profile {
 
   loans   Loan[]
   actions Action[]
+  foundReportsSubmitted FoundReport[] @relation("FoundReportReporter")
+  foundReportsClosed    FoundReport[] @relation("FoundReportCloser")
 }
 
 model Gear {
@@ -54,8 +56,9 @@ model Gear {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  loans   Loan[]
-  actions Action[]
+  loans        Loan[]
+  actions      Action[]
+  foundReports FoundReport[]
   @@index([loanStatus])
   @@index([categoryId])
 }
@@ -83,6 +86,31 @@ model Loan {
   updatedAt    DateTime   @updatedAt
 
   @@index([userId])
+  @@index([gearItemId])
+  @@index([status])
+}
+
+enum FoundReportStatus {
+  OPEN
+  CLOSED
+}
+
+model FoundReport {
+  id          String            @id @default(uuid())
+  gearItemId  String
+  gearItem    Gear              @relation(fields: [gearItemId], references: [id], onDelete: Cascade)
+  reportedBy  String?
+  reporter    Profile?          @relation("FoundReportReporter", fields: [reportedBy], references: [id], onDelete: SetNull)
+  contactInfo String?
+  description String?
+  latitude    Float?
+  longitude   Float?
+  status      FoundReportStatus @default(OPEN)
+  createdAt   DateTime          @default(now())
+  closedAt    DateTime?
+  closedBy    String?
+  closedByAdmin Profile?        @relation("FoundReportCloser", fields: [closedBy], references: [id], onDelete: SetNull)
+
   @@index([gearItemId])
   @@index([status])
 }

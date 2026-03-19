@@ -8,6 +8,12 @@ const GearStatus = z.enum(['AVAILABLE', 'CHECKED_OUT', 'LOST', 'RETIRED']);
 const LoanStatus = z.enum(['ACTIVE', 'RETURNED']);
 const Role = z.enum(['MEMBER', 'ADMIN']);
 
+/** Reusable page / pageSize params for list endpoints. */
+const paginationParams = {
+  page: z.string().regex(/^\d+$/).optional(),
+  pageSize: z.string().regex(/^\d+$/).optional(),
+};
+
 // ── Gear ─────────────────────────────────────────────────────────────
 
 export const createGearSchema = z
@@ -44,6 +50,25 @@ export const reportLostSchema = z
     notes: z.string().max(2000).optional().default(''),
     latitude: latitude.nullish(),
     longitude: longitude.nullish(),
+  })
+  .strip();
+
+// ── Found Reports ────────────────────────────────────────────────────
+
+export const createFoundReportSchema = z
+  .object({
+    contactInfo: z.string().max(200).optional().default(''),
+    description: z.string().max(2000).optional().default(''),
+    latitude: latitude.nullish(),
+    longitude: longitude.nullish(),
+  })
+  .strip();
+
+export const listFoundReportsQuerySchema = z
+  .object({
+    status: z.enum(['OPEN', 'CLOSED']).optional(),
+    gearItemId: z.string().max(200).optional(),
+    ...paginationParams,
   })
   .strip();
 
@@ -96,13 +121,7 @@ export const updateMyProfileSchema = z
   })
   .strip();
 
-// ── Query params (values arrive as strings) ──────────────────────────
-
-/** Reusable page / pageSize params for list endpoints. */
-const paginationParams = {
-  page: z.string().regex(/^\d+$/).optional(),
-  pageSize: z.string().regex(/^\d+$/).optional(),
-};
+// ── Query params ─────────────────────────────────────────────────────
 
 export const listGearQuerySchema = z
   .object({

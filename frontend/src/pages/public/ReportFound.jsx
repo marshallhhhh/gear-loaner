@@ -22,10 +22,10 @@ export default function ReportFound() {
     try {
       const location = await getLocation();
       const token = await getToken();
-      await api(`/gear/${id}/report-found`, {
+      await api(`/found-reports/${id}`, {
         method: 'POST',
         token,
-        body: { contactInfo, notes, ...(location || {}) },
+        body: { contactInfo, description: notes, ...(location || {}) },
       });
       setSubmitted(true);
     } catch (err) {

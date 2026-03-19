@@ -15,6 +15,7 @@ const GearDetail = lazy(() => import('./pages/admin/GearDetail.jsx'));
 const LoanHistory = lazy(() => import('./pages/admin/LoanHistory.jsx'));
 const UserManagement = lazy(() => import('./pages/admin/UserManagement.jsx'));
 const PrintTags = lazy(() => import('./pages/admin/PrintTags.jsx'));
+const FoundReports = lazy(() => import('./pages/admin/FoundReports.jsx'));
 
 function PageSpinner() {
   return (
@@ -128,6 +129,14 @@ export default function App() {
               element={
                 <ProtectedRoute adminOnly>
                   <PrintTags />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/found-reports"
+              element={
+                <ProtectedRoute adminOnly>
+                  <FoundReports />
                 </ProtectedRoute>
               }
             />

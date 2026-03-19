@@ -6,7 +6,6 @@ import {
   createGearSchema,
   updateGearSchema,
   changeGearStatusSchema,
-  reportLostSchema,
   listGearQuerySchema,
 } from '../schemas.js';
 import {
@@ -16,7 +15,6 @@ import {
   updateGear,
   deleteGear,
   changeGearStatus,
-  reportFound,
   getCategories,
 } from '../controllers/gearController.js';
 
@@ -25,7 +23,6 @@ const router = Router();
 // Public
 router.get('/categories', getCategories);
 router.get('/:id', optionalAuth, getGear);
-router.post('/:id/report-found', optionalAuth, validate(reportLostSchema), reportFound);
 
 // Authenticated
 router.get('/', authenticate, validateQuery(listGearQuerySchema), listGear);

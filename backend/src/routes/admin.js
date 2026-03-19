@@ -7,7 +7,7 @@ import {
   getDashboardStats,
   getAuditLog,
   getAdminGearDetail,
-  markFound,
+  closeAllOpenReports,
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -19,6 +19,6 @@ router.get('/export/loans', exportLoans);
 router.get('/export/gear', exportGear);
 router.get('/audit-log', getAuditLog);
 router.get('/gear/:id', getAdminGearDetail);
-router.post('/gear/:id/mark-found', markFound);
+router.post('/gear/:id/close-reports', closeAllOpenReports);
 
 export default router;
