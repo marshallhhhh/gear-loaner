@@ -145,51 +145,76 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
       return;
     }
 
-    // Build each page using renderToStaticMarkup so all gear field values
-    // are automatically escaped by React — no raw HTML injection possible.
-    const pagesHtml = pages
-      .map((pageTags) => {
-        const cells = pageTags
-          .map((gear) => {
-            const qrDataUrl = qrDataUrls[gear.shortId || gear.id] ?? '';
-            const tagHtml = resolveCqUnits(
-              renderToStaticMarkup(<TagTemplate gear={gear} qrDataUrl={qrDataUrl} />),
-              cellW,
-              cellH,
-            );
-            return `<div style="width:${cellW}mm;height:${cellH}mm;overflow:hidden;border:1px dashed #ccc;box-sizing:border-box;container-type:size;">${tagHtml}</div>`;
-          })
-          .join('');
+    // Load background image as data URL to ensure it works in blob context
+    const loadBackgroundImage = async () => {
+      try {
+        const response = await fetch('/static/qr_tag_background.png');
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+      } catch {
+        return '/static/qr_tag_background.png'; // Fallback to relative URL
+      }
+    };
 
-        return `<div class="print-page" style="width:${page.width}mm;height:${page.height}mm;padding:${config.marginTop}mm ${config.marginRight}mm ${config.marginBottom}mm ${config.marginLeft}mm;display:grid;grid-template-columns:repeat(${config.cols},${cellW}mm);grid-template-rows:repeat(${config.rows},${cellH}mm);gap:${config.paddingY}mm ${config.paddingX}mm;box-sizing:border-box;page-break-after:always;">${cells}</div>`;
-      })
-      .join('');
+    loadBackgroundImage().then((bgImageUrl) => {
+      // Build each page using renderToStaticMarkup so all gear field values
+      const pagesHtml = pages
+        .map((pageTags) => {
+          const cells = pageTags
+            .map((gear) => {
+              const qrDataUrl = qrDataUrls[gear.shortId || gear.id] ?? '';
+              // Replace relative URL with absolute or data URL
+              let tagHtml = renderToStaticMarkup(<TagTemplate gear={gear} qrDataUrl={qrDataUrl} />);
+              tagHtml = tagHtml.replace(
+                /url\(\/static\/qr_tag_background\.png\)/g,
+                `url(${bgImageUrl})`
+              );
+              tagHtml = resolveCqUnits(tagHtml, cellW, cellH);
+              return `<div style="width:${cellW}mm;height:${cellH}mm;overflow:hidden;border:1px dashed #ccc;box-sizing:border-box;container-type:size;">${tagHtml}</div>`;
+            })
+            .join('');
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Gear Tags</title>
-        <style>
-          @page {
-            size: ${page.width}mm ${page.height}mm;
-            margin: 0;
-          }
-          * { margin: 0; padding: 0; }
-          body { margin: 0; }
-          .print-page:last-child { page-break-after: avoid; }
-          @media print {
-            .print-page { border: none; }
-            .print-page div { border-color: transparent !important; }
-          }
-        </style>
-      </head>
-      <body>${pagesHtml}</body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 500);
+          return `<div class="print-page" style="width:${page.width}mm;height:${page.height}mm;padding:${config.marginTop}mm ${config.marginRight}mm ${config.marginBottom}mm ${config.marginLeft}mm;display:grid;grid-template-columns:repeat(${config.cols},${cellW}mm);grid-template-rows:repeat(${config.rows},${cellH}mm);gap:${config.paddingY}mm ${config.paddingX}mm;box-sizing:border-box;page-break-after:always;">${cells}</div>`;
+        })
+        .join('');
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Gear Tags</title>
+          <style>
+            @page {
+              size: ${page.width}mm ${page.height}mm;
+              margin: 0;
+            }
+            * { margin: 0; padding: 0; }
+            body { margin: 0; }
+            .print-page:last-child { page-break-after: avoid; }
+            @media print {
+              .print-page { border: none; }
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+            }
+          </style>
+        </head>
+        <body>${pagesHtml}</body>
+        </html>
+      `;
+
+      const htmlBlob = new Blob([html], { type: 'text/html' });
+      const htmlUrl = URL.createObjectURL(htmlBlob);
+      printWindow.location.href = htmlUrl;
+
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        URL.revokeObjectURL(htmlUrl);
+      }, 500);
+    });
   }
 
   function handleReset() {

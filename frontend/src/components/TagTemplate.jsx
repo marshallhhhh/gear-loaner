@@ -23,6 +23,10 @@ export default function TagTemplate({ gear, qrDataUrl }) {
         padding: '4%',
         boxSizing: 'border-box',
         overflow: 'hidden',
+        backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.65)), url(/static/qr_tag_background.png)`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <div
@@ -58,11 +62,26 @@ export default function TagTemplate({ gear, qrDataUrl }) {
         style={{
           fontFamily: 'monospace',
           fontSize: '5cqmin',
+          fontWeight: 600,
           marginTop: '2%',
           flexShrink: 0,
         }}
       >
         {gear.shortId}
+        {
+        <div
+        style={{
+          fontWeight: 400,
+          fontSize: '4cqmin',
+          marginBottom: '2%',
+          lineHeight: 1.2,
+          width: '100%',
+          maxHeight: '6cqmin',
+        }}
+        >
+            If found please return to TUMC (tasuniclimbing@gmail.com)
+        </div>
+        }
       </div>
     </div>
   );
