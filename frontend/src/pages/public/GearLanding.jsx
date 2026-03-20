@@ -182,7 +182,7 @@ export default function GearLanding() {
 
           {!isAuthenticated && gear.loanStatus === 'AVAILABLE' && (
             <p className="text-center text-gray-500 text-sm">
-              <Link to="/login" className="text-primary-600 hover:underline">
+              <Link to="/login" state={{ from: `/gear/${id}` }} className="text-primary-600 hover:underline">
                 Sign in
               </Link>{' '}
               to check out this item.
