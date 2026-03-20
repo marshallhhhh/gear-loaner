@@ -16,6 +16,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const isProd = process.env.NODE_ENV === 'production';
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 15000);
+const appUrl = process.env.APP_URL || `http://localhost:${PORT}`;
 
 function getCorsOrigin() {
   const configured = process.env.FRONTEND_URL;
@@ -37,9 +38,29 @@ function getCorsOrigin() {
 }
 
 const corsOrigin = getCorsOrigin();
+const cspConnectSources = [...new Set(["'self'", corsOrigin, appUrl])];
 
 // Security
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'", corsOrigin],
+        frameAncestors: ["'none'"],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:'],
+        fontSrc: ["'self'", 'data:'],
+        connectSrc: cspConnectSources,
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 app.use(
   cors({
     origin: corsOrigin,
