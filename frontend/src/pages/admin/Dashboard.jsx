@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
+import LoadingState from '../../components/LoadingState.jsx';
+import PageHeader from '../../components/PageHeader.jsx';
 
 export default function Dashboard() {
   const { getToken } = useAuth();
@@ -44,7 +46,7 @@ export default function Dashboard() {
   }
 
   if (loading) {
-    return <div className="text-center py-20 text-gray-500">Loading dashboard…</div>;
+    return <LoadingState message="Loading dashboard…" />;
   }
 
   // Use explicit text color classes so Tailwind's purge/JIT recognizes them.
@@ -111,7 +113,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+      <PageHeader title="Admin Dashboard" />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
         {cards.map((card) => (

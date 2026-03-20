@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
+import Alert from '../../components/Alert.jsx';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -29,7 +30,7 @@ export default function Login() {
     <div className="max-w-md mx-auto mt-12">
       <h1 className="text-2xl font-bold mb-6 text-center">Sign In</h1>
 
-      {error && <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+      <Alert type="error">{error}</Alert>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

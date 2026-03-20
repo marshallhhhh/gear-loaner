@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { api } from '../../config/api.js';
 import usePagination from '../../hooks/usePagination.js';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
+import { handleLoanOverride } from '../../utils/loanActions.js';
+import Alert from '../../components/Alert.jsx';
+import LoadingState from '../../components/LoadingState.jsx';
+import EmptyState from '../../components/EmptyState.jsx';
+import PageHeader from '../../components/PageHeader.jsx';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import DetailModal from '../../components/DetailModal.jsx';
 import LoanStatusBadge from '../../components/badges/LoanStatusBadge.jsx';
@@ -27,36 +31,17 @@ export default function LoanHistory() {
     fetchPage(1);
   }, [fetchPage]);
 
-  async function handleOverride(loanId, action) {
-    try {
-      const body =
-        action === 'cancel'
-          ? { status: 'CANCELLED' }
-          : { dueDate: new Date(Date.now() + 7 * 86400000).toISOString() }; // eslint-disable-line react-hooks/purity
-
-      await api(`/loans/${loanId}/override`, {
-        method: 'PUT',
-        token: await getToken(),
-        body,
-      });
-      refetchCurrentPage();
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
   function isOverdue(loan) {
     return loan.status === 'ACTIVE' && new Date(loan.dueDate) < new Date();
   }
 
   if (loading) {
-    return <div className="text-center py-20 text-gray-500">Loading loans…</div>;
+    return <LoadingState message="Loading loans…" />;
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Loan History</h1>
+      <PageHeader title="Loan History">
         <select
           value={filter}
           onChange={(e) => {
@@ -70,11 +55,9 @@ export default function LoanHistory() {
           <option value="RETURNED">Returned</option>
           <option value="OVERDUE">Overdue</option>
         </select>
-      </div>
+      </PageHeader>
 
-      {fetchError && (
-        <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{fetchError}</div>
-      )}
+      <Alert>{fetchError}</Alert>
 
       <div className="bg-white rounded-xl shadow overflow-x-auto">
         <table className="w-full text-sm">
@@ -112,13 +95,13 @@ export default function LoanHistory() {
                   {loan.status === 'ACTIVE' && (
                     <>
                       <button
-                        onClick={() => handleOverride(loan.id, 'cancel')}
+                        onClick={() => handleLoanOverride(loan.id, 'cancel', getToken, refetchCurrentPage)}
                         className="text-green-600 hover:underline text-xs"
                       >
                         Force Return
                       </button>
                       <button
-                        onClick={() => handleOverride(loan.id, 'extend')}
+                        onClick={() => handleLoanOverride(loan.id, 'extend', getToken, refetchCurrentPage)}
                         className="text-primary-600 hover:underline text-xs"
                       >
                         Extend 7d
@@ -128,13 +111,7 @@ export default function LoanHistory() {
                 </td>
               </tr>
             ))}
-            {loans.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center py-8 text-gray-400">
-                  No loans found.
-                </td>
-              </tr>
-            )}
+            {loans.length === 0 && <EmptyState colSpan={6} message="No loans found." />}
           </tbody>
         </table>
       </div>

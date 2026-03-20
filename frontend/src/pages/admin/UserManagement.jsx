@@ -4,26 +4,22 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
 import usePagination from '../../hooks/usePagination.js';
+import useDebouncedValue from '../../hooks/useDebouncedValue.js';
+import useConfirmModal from '../../hooks/useConfirmModal.js';
+import LoadingState from '../../components/LoadingState.jsx';
+import EmptyState from '../../components/EmptyState.jsx';
+import PageHeader from '../../components/PageHeader.jsx';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate } from '../../utils/formatDate.js';
 import UserRoleBadge from '../../components/badges/UserRoleBadge.jsx';
+import ActiveStatusBadge from '../../components/badges/ActiveStatusBadge.jsx';
 
 export default function UserManagement() {
   const { getToken } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    message: '',
-    onConfirm: null,
-  });
-
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+  const debouncedSearch = useDebouncedValue(search);
+  const { confirmState, confirm, close: closeConfirm } = useConfirmModal();
 
   const {
     data: users,
@@ -52,8 +48,7 @@ export default function UserManagement() {
 
   async function toggleRole(userId, currentRole) {
     const newRole = currentRole === 'ADMIN' ? 'MEMBER' : 'ADMIN';
-    setConfirmModal({
-      isOpen: true,
+    confirm({
       message: `Change this user's role to ${newRole}?`,
       confirmText: 'Change Role',
       isDangerous: false,
@@ -64,7 +59,7 @@ export default function UserManagement() {
             token: await getToken(),
             body: { role: newRole },
           });
-          setConfirmModal({ ...confirmModal, isOpen: false });
+          closeConfirm();
           refetchCurrentPage();
         } catch (err) {
           alert(err.message);
@@ -74,12 +69,12 @@ export default function UserManagement() {
   }
 
   if (loading) {
-    return <div className="text-center py-20 text-gray-500">Loading users…</div>;
+    return <LoadingState message="Loading users…" />;
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">User Management</h1>
+      <PageHeader title="User Management" />
 
       <div className="mb-4">
         <input
@@ -116,13 +111,7 @@ export default function UserManagement() {
                   <UserRoleBadge role={user.role} />
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                      user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {user.isActive ? 'Active' : 'Inactive'}
-                  </span>
+                  <ActiveStatusBadge isActive={user.isActive} />
                 </td>
                 <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
                   {formatDate(user.createdAt)}
@@ -145,13 +134,7 @@ export default function UserManagement() {
                 </td>
               </tr>
             ))}
-            {users.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center py-8 text-gray-400">
-                  No users found.
-                </td>
-              </tr>
-            )}
+            {users.length === 0 && <EmptyState colSpan={6} message="No users found." />}
           </tbody>
         </table>
       </div>
@@ -163,14 +146,13 @@ export default function UserManagement() {
         label="users"
       />
 
-      {/* Confirm Modal */}
       <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        message={confirmModal.message}
-        confirmText={confirmModal.confirmText}
-        isDangerous={confirmModal.isDangerous}
-        onConfirm={() => confirmModal.onConfirm?.()}
-        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        isOpen={confirmState.isOpen}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        isDangerous={confirmState.isDangerous}
+        onConfirm={() => confirmState.onConfirm?.()}
+        onCancel={closeConfirm}
       />
     </div>
   );
