@@ -155,7 +155,7 @@ jobs:
       # 'if: always()' ensures this step runs regardless of whether the
       # scan step above succeeded or found issues.
       - name: Upload Semgrep SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: semgrep.sarif
