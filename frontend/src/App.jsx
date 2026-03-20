@@ -163,7 +163,7 @@ function Home() {
     const shortIdRegex = /^[A-Za-z]{3}-\d{3}$/;
     if (shortIdRegex.test(shortId.trim())) {
       setError('');
-      window.location.href = `/gear/${shortId.trim()}`;
+      window.location.href = `/gear/${encodeURIComponent(shortId.trim())}`;
     } else {
       setError('Please enter a valid short ID (e.g. SHO-123)');
     }
