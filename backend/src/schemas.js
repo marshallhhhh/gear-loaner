@@ -126,7 +126,7 @@ export const updateMyProfileSchema = z
 export const listGearQuerySchema = z
   .object({
     category: z.string().max(100).optional(),
-    status: z.string().max(20).optional(),
+    status: z.enum([...GearStatus.options, 'HAS_OPEN_REPORTS']).optional(),
     search: z.string().max(200).optional(),
     ...paginationParams,
   })
@@ -134,7 +134,7 @@ export const listGearQuerySchema = z
 
 export const listLoansQuerySchema = z
   .object({
-    status: z.string().max(20).optional(),
+    status: z.enum([...LoanStatus.options, 'OVERDUE']).optional(),
     gearItemId: z.string().max(200).optional(),
     userId: z.string().max(200).optional(),
     ...paginationParams,

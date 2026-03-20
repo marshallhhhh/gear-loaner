@@ -71,6 +71,15 @@ model Category {
   gears     Gear[]
 }
 
+model ShortIdCounter {
+  prefix       String   @id
+  currentValue Int      @default(0) @map("current_value")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("short_id_counters")
+}
+
 model Loan {
   id           String     @id @default(uuid())
   gearItemId   String
@@ -88,6 +97,7 @@ model Loan {
   @@index([userId])
   @@index([gearItemId])
   @@index([status])
+  @@index([dueDate])
 }
 
 enum FoundReportStatus {

@@ -1,7 +1,8 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { requireRole } from '../middleware/roles.js';
-import { validate, validateQuery } from '../middleware/validate.js';
+import { validate, validateQuery, validateUuidParam } from '../middleware/validate.js';
 import { createFoundReportSchema, listFoundReportsQuerySchema } from '../schemas.js';
 import {
   createFoundReport,
@@ -10,9 +11,22 @@ import {
 } from '../controllers/foundReportController.js';
 
 const router = Router();
+const createFoundReportLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Public (anyone who scans a QR code can submit a report)
-router.post('/:id', optionalAuth, validate(createFoundReportSchema), createFoundReport);
+router.post(
+  '/:id',
+  validateUuidParam(),
+  createFoundReportLimiter,
+  optionalAuth,
+  validate(createFoundReportSchema),
+  createFoundReport,
+);
 
 // Admin only
 router.get(
@@ -22,6 +36,12 @@ router.get(
   validateQuery(listFoundReportsQuerySchema),
   listFoundReports,
 );
-router.patch('/:id/close', authenticate, requireRole('ADMIN'), closeFoundReport);
+router.patch(
+  '/:id/close',
+  validateUuidParam(),
+  authenticate,
+  requireRole('ADMIN'),
+  closeFoundReport,
+);
 
 export default router;

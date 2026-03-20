@@ -1,0 +1,67 @@
+# =============================================================================
+# Gitleaks Configuration
+# =============================================================================
+#
+# PURPOSE
+#   This file customises Gitleaks secret scanning to suppress known
+#   false positives that are specific to this project.
+#
+# HOW IT WORKS
+#   Gitleaks automatically picks up this file when it is located at
+#   .github/gitleaks.toml (the path configured in the workflow).
+#
+# ADDING ALLOWLIST ENTRIES
+#   Before suppressing a finding, MANUALLY VERIFY that it is not a real
+#   secret. Document WHY it is safe in a comment next to the entry.
+#
+# FULL REFERENCE
+#   https://github.com/gitleaks/gitleaks/tree/master/config
+#
+# =============================================================================
+
+title = "Gitleaks Config — ai-tumc-gear"
+
+# =============================================================================
+# Global allow-list
+# =============================================================================
+# Entries here suppress findings across ALL rules.
+[allowlist]
+  description = "Project-specific false-positive suppressions"
+
+  # ---------------------------------------------------------------------------
+  # Path exclusions
+  # Regex patterns matched against the file path of each finding.
+  # ---------------------------------------------------------------------------
+  paths = [
+    # Istanbul/V8 coverage HTML output — contains syntax snippets that
+    # look like secrets but are just highlighted source code.
+    '''backend/coverage/''',
+
+    # This config file itself — the regex patterns it contains can be
+    # flagged by Gitleaks as potential secrets.
+    '''\.github/gitleaks\.toml''',
+
+    # Prisma migration SQL snapshots — may contain example connection
+    # strings used in migration comments, not live credentials.
+    '''backend/prisma/migrations/''',
+  ]
+
+  # ---------------------------------------------------------------------------
+  # Stop-words
+  # A finding is suppressed if its matched secret VALUE contains any of
+  # these substrings (case-insensitive). Only add genuine placeholder
+  # patterns here — never real secret fragments.
+  # ---------------------------------------------------------------------------
+  stopwords = [
+    # Generic placeholder tokens used in documentation and env examples.
+    "example",
+    "placeholder",
+    "REPLACE_ME",
+    "CHANGE_ME",
+    "your_",
+    "changeme",
+    "dummy",
+    "fake",
+    # Supabase anon key placeholder that may appear in README/env samples.
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIi",
+  ]

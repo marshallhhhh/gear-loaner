@@ -1,0 +1,114 @@
+# =============================================================================
+# Dependabot Configuration
+# =============================================================================
+#
+# PURPOSE
+#   Automatically opens pull requests to keep dependencies up-to-date.
+#   Covers three ecosystems:
+#     1. npm — backend/  (Express, Prisma, Supabase, etc.)
+#     2. npm — frontend/ (React, Vite, Tailwind, etc.)
+#     3. github-actions  (all workflow action pins in .github/workflows/)
+#
+# HOW IT WORKS
+#   On the configured schedule Dependabot compares your package-lock.json
+#   (or workflow pins) against the latest available versions and opens PRs
+#   for any outdated packages. Security advisories trigger immediate PRs
+#   regardless of the schedule.
+#
+# GROUPING STRATEGY
+#   Non-security updates are grouped into batches to reduce PR noise:
+#     • devDependencies: minor + patch updates (lower risk, grouped)
+#     • productionDependencies: patch-only updates (grouped)
+#   Major version bumps are always surfaced as individual PRs so they get
+#   deliberate human review.
+#
+# =============================================================================
+
+version: 2
+
+updates:
+
+  # ---------------------------------------------------------------------------
+  # 1. Backend — npm (backend/)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: npm
+    # Dependabot looks for package.json / package-lock.json here.
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      # Run at a low-traffic time to avoid clogging the merge queue.
+      time: "06:00"
+      timezone: "UTC"
+
+    # Group minor/patch updates into single PRs to reduce noise.
+    # Each group opens at most one PR per scheduled run.
+    groups:
+      backend-dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      backend-prod-dependencies:
+        dependency-type: production
+        update-types:
+          - patch
+
+    # Labels applied to every Dependabot PR for this ecosystem.
+    labels:
+      - dependencies
+      - backend
+
+    # Conventional commit prefix for easier changelog generation.
+    commit-message:
+      prefix: "chore(deps-backend)"
+
+  # ---------------------------------------------------------------------------
+  # 2. Frontend — npm (frontend/)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "UTC"
+
+    groups:
+      frontend-dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      frontend-prod-dependencies:
+        dependency-type: production
+        update-types:
+          - patch
+
+    labels:
+      - dependencies
+      - frontend
+
+    commit-message:
+      prefix: "chore(deps-frontend)"
+
+  # ---------------------------------------------------------------------------
+  # 3. GitHub Actions — all workflows in .github/workflows/
+  # ---------------------------------------------------------------------------
+  # Keeps action pins (e.g. actions/checkout@v4) on the latest patch/minor
+  # so you automatically receive upstream security fixes to the actions
+  # themselves without manual tracking.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "UTC"
+
+    labels:
+      - dependencies
+      - github-actions
+
+    commit-message:
+      prefix: "chore(actions)"

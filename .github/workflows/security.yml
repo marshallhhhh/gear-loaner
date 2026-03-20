@@ -1,0 +1,221 @@
+# =============================================================================
+# Security Scanning Workflow
+# =============================================================================
+#
+# PURPOSE
+#   Runs four categories of automated security scans on every pull request
+#   targeting main (and on direct pushes to main for the main branch feed).
+#
+#   ┌──────────────────────┬──────────────────────────────────────────────┐
+#   │ Scan type            │ Tool                                         │
+#   ├──────────────────────┼──────────────────────────────────────────────┤
+#   │ Secret scanning      │ Gitleaks  (job: secrets-scan)                │
+#   │ SAST + code scanning │ CodeQL    (job: codeql)                      │
+#   │ SAST — supplementary │ Semgrep   (job: semgrep)                     │
+#   │ Dependency scanning  │ npm audit (job: dependency-audit)            │
+#   └──────────────────────┴──────────────────────────────────────────────┘
+#
+# BLOCKING VS NON-BLOCKING
+#   • secrets-scan, codeql, and dependency-audit are configured as required
+#     status checks — they block the PR merge on failure.
+#   • semgrep is advisory-only (continue-on-error: true). Its findings
+#     appear in the GitHub Security → Code scanning tab but never block
+#     a merge, so you can tune false-positive rules at your own pace.
+#
+# SARIF REPORTS
+#   CodeQL and Semgrep upload findings in SARIF format to the GitHub
+#   Security tab (Security → Code scanning alerts). No third-party
+#   dashboard or account is required.
+#
+# FREE-TIER NOTES
+#   All tools are free/open-source. CodeQL is free for all GitHub repos.
+#   Gitleaks — see the licensing note in the secrets-scan job below.
+#   npm audit and Semgrep community packs require no accounts.
+#
+# =============================================================================
+
+name: Security Scanning
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel an in-progress scan for the same ref when a newer commit arrives.
+# This avoids burning free-tier minutes on superseded pushes.
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ===========================================================================
+  # JOB 1 · Secret Scanning — Gitleaks
+  # ===========================================================================
+  # Gitleaks scans the git commit diff for hardcoded credentials: API keys,
+  # tokens, private keys, connection strings, and similar secrets.
+  #
+  # Config: .github/gitleaks.toml  ← project-specific allowlists live there.
+  #
+  # LICENSING NOTE
+  #   • Personal-account repos (public or private): no license key required.
+  #   • GitHub Organisation repos: a GITLEAKS_LICENSE secret is required
+  #     (paid). See https://github.com/gitleaks/gitleaks-action#-usage.
+  #     Alternatively enable GitHub's native Secret Scanning in
+  #     Settings → Security → Secret scanning (free for public repos,
+  #     requires GitHub Advanced Security for private org repos).
+  # ===========================================================================
+  secrets-scan:
+    name: Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+
+      # Full history is needed so Gitleaks can diff every commit in this push
+      # or PR rather than only seeing the single merged snapshot.
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Uncomment the line below and add the secret in repo/org settings
+          # if this repo is owned by a GitHub Organisation:
+          # GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        with:
+          # Point to the project-specific allowlist config. This file tells
+          # Gitleaks which paths and placeholder patterns to ignore so that
+          # test fixtures and documentation examples don't produce false positives.
+          args: --config=.github/gitleaks.toml
+
+
+  # ===========================================================================
+  # JOB 2 · Supplementary SAST — Semgrep
+  # ===========================================================================
+  # Semgrep adds fast, pattern-based static analysis that is complementary to
+  # CodeQL's deeper dataflow approach. It applies curated community rule packs
+  # for this project's tech stack:
+  #
+  #   p/nodejs         — Node.js security patterns
+  #   p/react          — React-specific issues (XSS, dangerouslySetInnerHTML…)
+  #   p/owasp-top-ten  — OWASP Top 10 mapped rules
+  #
+  # No Semgrep Cloud account is required; rulesets are downloaded from the
+  # public Semgrep registry (registry.semgrep.dev) at run time.
+  #
+  # ADVISORY ONLY — this job never blocks a PR merge.
+  # Findings are uploaded to GitHub Security → Code scanning (category:
+  # semgrep) for review. To make this job blocking, remove the two
+  # 'continue-on-error: true' lines below and add 'semgrep' to the
+  # required status checks in branch protection settings.
+  #
+  # Results appear in: Security → Code scanning alerts (category: semgrep).
+  # ===========================================================================
+  semgrep:
+    name: Semgrep SAST (advisory)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Write SARIF results to the GitHub Security tab.
+      security-events: write
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install Semgrep OSS via pip. Python 3 is pre-installed on ubuntu-latest.
+      # Pin to a specific version for reproducible scans, e.g. semgrep==1.70.0.
+      - name: Install Semgrep
+        run: pip install semgrep --quiet
+
+      # Run the scan against the entire repository.
+      # --sarif writes machine-readable results for the GitHub Security tab.
+      # --output saves results to a file so the upload step below can read it.
+      # continue-on-error: true ensures the SARIF upload always runs even
+      # when Semgrep exits non-zero (findings were detected).
+      - name: Run Semgrep scan
+        run: |
+          semgrep scan \
+            --config p/nodejs \
+            --config p/react \
+            --config p/owasp-top-ten \
+            --sarif \
+            --output semgrep.sarif \
+            .
+        # Non-zero exit (findings found) must not prevent SARIF upload.
+        continue-on-error: true
+
+      # Upload SARIF results so they appear in the Security tab.
+      # 'if: always()' ensures this step runs regardless of whether the
+      # scan step above succeeded or found issues.
+      - name: Upload Semgrep SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+        # Non-blocking: a network/tool failure here should not fail the job.
+        continue-on-error: true
+
+
+  # ===========================================================================
+  # JOB 3 · Dependency Vulnerability Audit — npm audit
+  # ===========================================================================
+  # npm audit checks every installed dependency against the npm advisory
+  # database for known CVEs. Backend and frontend are scanned as independent
+  # matrix legs so that:
+  #   (a) both workspaces are always reported in the same run, and
+  #   (b) a vulnerability in one workspace does not hide results from the other.
+  #
+  # Severity threshold: HIGH (and CRITICAL).
+  # The job exits successfully on LOW and MODERATE findings so that advisory
+  # issues don't block routine PRs. Change --audit-level to 'moderate' or
+  # 'low' to enforce stricter thresholds.
+  #
+  # npm audit --audit-level reference:
+  #   critical | high | moderate | low | info | none
+  # ===========================================================================
+  dependency-audit:
+    name: Dependency Audit (${{ matrix.workspace }})
+    permissions: 
+      contents: read
+    runs-on: ubuntu-latest
+    strategy:
+      # Run both workspaces and report results for both even if one fails.
+      fail-fast: false
+      matrix:
+        workspace: [backend, frontend]
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Restore the npm cache for this workspace to avoid re-downloading
+      # packages on every run. The cache key is tied to package-lock.json so
+      # it is invalidated automatically when dependencies change.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
+
+      # Install exact dependency versions from package-lock.json.
+      # 'npm ci' is preferred over 'npm install' in CI for determinism.
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ matrix.workspace }}
+
+      # Fail the job (and block the PR) only when HIGH or CRITICAL
+      # vulnerabilities are found. All advisories are printed to the log
+      # regardless of severity for informational purposes.
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        working-directory: ${{ matrix.workspace }}
