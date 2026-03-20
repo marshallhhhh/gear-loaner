@@ -240,6 +240,8 @@ jobs:
   # ===========================================================================
   dependency-audit:
     name: Dependency Audit (${{ matrix.workspace }})
+    permissions: 
+      contents: read
     runs-on: ubuntu-latest
     strategy:
       # Run both workspaces and report results for both even if one fails.
