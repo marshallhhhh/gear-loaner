@@ -5,6 +5,7 @@ import { generateShortId } from '../services/shortIdService.js';
 import { getGearIdsWithOpenReports } from '../services/foundReportService.js';
 import { categoryName, normalizeGearCategory } from '../services/normalize.js';
 import { parsePagination } from '../utils/pagination.js';
+import { getCategories as getCategoriesCache, invalidateCategories } from '../services/categoryCache.js';
 
 /** Matches the AAA-XXX short ID format */
 const SHORT_ID_RE = /^[A-Za-z]{3}-\d{3}$/;
@@ -165,6 +166,16 @@ export async function createGear(req, res, next) {
     }
 
     res.status(201).json(gear);
+    // If caller provided a category string, it may have created a new Category
+    // record via upsert above — invalidate the categories cache so future
+    // callers see the new value.
+    if (category && typeof category === 'string') {
+      try {
+        invalidateCategories();
+      } catch (e) {
+        logger.warn({ err: e }, 'Failed to invalidate categories cache');
+      }
+    }
   } catch (err) {
     next(err);
   }
@@ -217,6 +228,16 @@ export async function updateGear(req, res, next) {
     normalizeGearCategory(gear);
 
     res.json(gear);
+
+    // If request included a category field we may have created/removed a
+    // category relationship; invalidate cache so subsequent GETs refresh.
+    if (category !== undefined) {
+      try {
+        invalidateCategories();
+      } catch (e) {
+        logger.warn({ err: e }, 'Failed to invalidate categories cache');
+      }
+    }
   } catch (err) {
     next(err);
   }
@@ -348,11 +369,8 @@ export async function changeGearStatus(req, res, next) {
 
 export async function getCategories(req, res, next) {
   try {
-    const cats = await prisma.category.findMany({
-      select: { name: true },
-      orderBy: { name: 'asc' },
-    });
-    res.json(cats.map((c) => c.name));
+    const cats = await getCategoriesCache();
+    res.json(cats);
   } catch (err) {
     next(err);
   }
