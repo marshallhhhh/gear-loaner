@@ -69,6 +69,8 @@ jobs:
   secrets-scan:
     name: Secret Scanning (Gitleaks)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
 
       # Full history is needed so Gitleaks can diff every commit in this push
