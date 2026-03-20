@@ -34,9 +34,6 @@ export default function Navbar() {
           <nav className="hidden sm:flex items-center gap-4 text-sm" aria-label="Main navigation">
             {isAuthenticated ? (
               <>
-                <Link to="/scan" className="hover:text-primary-200">
-                  Scan QR
-                </Link>
                 <Link to="/my-loans" className="hover:text-primary-200">
                   My Loans
                 </Link>
@@ -52,7 +49,7 @@ export default function Navbar() {
                       Users
                     </Link>
                     <Link to="/admin/loans" className="hover:text-primary-200">
-                      All Loans
+                      Loans
                     </Link>
                     <Link to="/admin/found-reports" className="hover:text-primary-200">
                       Found Reports
@@ -110,8 +107,8 @@ export default function Navbar() {
           <div className="px-4 pt-2 pb-4 space-y-2">
             {isAuthenticated ? (
               <>
-                <Link to="/scan" onClick={() => setOpen(false)} className="block py-2">
-                  Scan QR
+                <Link to="/" onClick={() => setOpen(false)} className="block py-2">
+                  Borrow
                 </Link>
                 <Link to="/my-loans" onClick={() => setOpen(false)} className="block py-2">
                   My Loans

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import usePagination from '../../hooks/usePagination.js';
-import { formatDate, formatDateTime } from '../../utils/formatDate.js';
+import { formatDate } from '../../utils/formatDate.js';
 import { handleLoanOverride } from '../../utils/loanActions.js';
 import Alert from '../../components/Alert.jsx';
 import LoadingState from '../../components/LoadingState.jsx';
@@ -178,11 +178,15 @@ export default function LoanHistory() {
                   type: 'user',
                   userId: selectedLoan.userId,
                 },
-                { label: 'Checkout Date', value: formatDateTime(selectedLoan.checkoutDate) },
-                { label: 'Due Date', value: formatDateTime(selectedLoan.dueDate) },
+                {
+                  label: 'Checkout Date',
+                  value: formatDate(selectedLoan.checkoutDate),
+                  type: 'date',
+                },
+                { label: 'Due Date', value: formatDate(selectedLoan.dueDate), type: 'date' },
                 {
                   label: 'Return Date',
-                  value: selectedLoan.returnDate ? formatDateTime(selectedLoan.returnDate) : null,
+                  value: selectedLoan.returnDate ? formatDate(selectedLoan.returnDate) : null,
                 },
                 { label: 'Notes', value: selectedLoan.notes, type: 'preWrap' },
               ]

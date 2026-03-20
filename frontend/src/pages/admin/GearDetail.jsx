@@ -150,7 +150,7 @@ export default function GearDetail() {
   if (!gear) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-500 mb-4">Gear not found.</p>
+        <p className="text-gray-500 mb-4">Item not found.</p>
         <button
           onClick={() => navigate('/admin/gear')}
           className="text-primary-600 hover:underline"
