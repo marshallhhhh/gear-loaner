@@ -3,6 +3,19 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Alert from '../../components/Alert.jsx';
 
+const INVALID_FULL_NAME_MESSAGE = 'Please use your real full name';
+
+function isValidFullName(value) {
+  const trimmedValue = value.trim();
+  const nameParts = trimmedValue.split(/\s+/).filter(Boolean);
+
+  if (nameParts.length < 2) {
+    return false;
+  }
+
+  return nameParts.every((part) => /^[\p{L}\p{M}]+(?:[.'’-][\p{L}\p{M}]+)*$/u.test(part));
+}
+
 export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,11 +27,19 @@ export default function SignUp() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const trimmedFullName = fullName.trim();
+
     setError('');
+
+    if (!isValidFullName(trimmedFullName)) {
+      setError(INVALID_FULL_NAME_MESSAGE);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signUp(email, password, fullName);
+      await signUp(email, password, trimmedFullName);
       setSuccess(true);
     } catch (err) {
       setError(err.message);
@@ -58,7 +79,12 @@ export default function SignUp() {
             type="text"
             required
             value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            onChange={(e) => {
+              setFullName(e.target.value);
+              if (error === INVALID_FULL_NAME_MESSAGE) {
+                setError('');
+              }
+            }}
             className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
           />
         </div>
