@@ -55,7 +55,7 @@ export default function GearManagement() {
   const [editingShortId, setEditingShortId] = useState(null);
 
   // Confirm modal state for delete
-  const { confirmState, confirm, close: closeConfirm } = useConfirmModal();
+  const { confirmState, close: closeConfirm } = useConfirmModal();
 
   // Fetch gear when filters or page change
   useEffect(() => {
