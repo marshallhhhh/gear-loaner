@@ -11,7 +11,9 @@ export default function LoanStatusBadge({ loan }) {
   const config = statusConfig[key] || { label: key, className: 'bg-gray-100 text-gray-800' };
 
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${config.className}`}>
+    <span
+      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${config.className}`}
+    >
       {config.label}
     </span>
   );

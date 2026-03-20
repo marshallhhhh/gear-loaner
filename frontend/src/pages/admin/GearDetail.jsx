@@ -440,11 +440,19 @@ export default function GearDetail() {
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500">Serial Number</dt>
-                <dd className="font-medium font-mono">{gear.serialNumber || '—'}</dd>
+                {gear.serialNumber ? (
+                  <dd className="font-medium font-mono">{gear.serialNumber}</dd>
+                ) : (
+                  <dd className="font-medium">—</dd>
+                )}
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500">Short ID</dt>
-                <dd className="font-medium font-mono">{gear.shortId || '—'}</dd>
+                {gear.shortId ? (
+                  <dd className="font-medium font-mono">{gear.shortId}</dd>
+                ) : (
+                  <dd className="font-medium">—</dd>
+                )}
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500">Default Loan Days</dt>
