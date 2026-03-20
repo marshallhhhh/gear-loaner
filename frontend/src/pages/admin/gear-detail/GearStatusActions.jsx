@@ -1,24 +1,66 @@
 const STATUS_TRANSITIONS = {
   CHECKED_OUT: [
-    { newStatus: 'AVAILABLE', label: 'Make Available', colorClass: 'bg-green-600 hover:bg-green-700 text-white' },
-    { newStatus: 'LOST', label: 'Report Lost', colorClass: 'bg-red-600 hover:bg-red-700 text-white' },
-    { newStatus: 'RETIRED', label: 'Retire', colorClass: 'bg-gray-600 hover:bg-gray-700 text-white' },
+    {
+      newStatus: 'AVAILABLE',
+      label: 'Make Available',
+      colorClass: 'bg-green-600 hover:bg-green-700 text-white',
+    },
+    {
+      newStatus: 'LOST',
+      label: 'Report Lost',
+      colorClass: 'bg-red-600 hover:bg-red-700 text-white',
+    },
+    {
+      newStatus: 'RETIRED',
+      label: 'Retire',
+      colorClass: 'bg-gray-600 hover:bg-gray-700 text-white',
+    },
   ],
   AVAILABLE: [
-    { newStatus: 'LOST', label: 'Report Lost', colorClass: 'bg-red-600 hover:bg-red-700 text-white' },
-    { newStatus: 'RETIRED', label: 'Retire', colorClass: 'bg-gray-600 hover:bg-gray-700 text-white' },
+    {
+      newStatus: 'LOST',
+      label: 'Report Lost',
+      colorClass: 'bg-red-600 hover:bg-red-700 text-white',
+    },
+    {
+      newStatus: 'RETIRED',
+      label: 'Retire',
+      colorClass: 'bg-gray-600 hover:bg-gray-700 text-white',
+    },
   ],
   LOST: [
-    { newStatus: 'AVAILABLE', label: 'Make Available', colorClass: 'bg-green-600 hover:bg-green-700 text-white' },
-    { newStatus: 'RETIRED', label: 'Retire', colorClass: 'bg-gray-600 hover:bg-gray-700 text-white' },
+    {
+      newStatus: 'AVAILABLE',
+      label: 'Make Available',
+      colorClass: 'bg-green-600 hover:bg-green-700 text-white',
+    },
+    {
+      newStatus: 'RETIRED',
+      label: 'Retire',
+      colorClass: 'bg-gray-600 hover:bg-gray-700 text-white',
+    },
   ],
   RETIRED: [
-    { newStatus: 'AVAILABLE', label: 'Make Available', colorClass: 'bg-green-600 hover:bg-green-700 text-white' },
-    { newStatus: 'LOST', label: 'Report Lost', colorClass: 'bg-red-600 hover:bg-red-700 text-white' },
+    {
+      newStatus: 'AVAILABLE',
+      label: 'Make Available',
+      colorClass: 'bg-green-600 hover:bg-green-700 text-white',
+    },
+    {
+      newStatus: 'LOST',
+      label: 'Report Lost',
+      colorClass: 'bg-red-600 hover:bg-red-700 text-white',
+    },
   ],
 };
 
-export default function GearStatusActions({ gear, hasOpenReports, statusChanging, onStatusChange, onCloseReports }) {
+export default function GearStatusActions({
+  gear,
+  hasOpenReports,
+  statusChanging,
+  onStatusChange,
+  onCloseReports,
+}) {
   if (!STATUS_TRANSITIONS[gear.loanStatus] && !hasOpenReports) return null;
 
   return (

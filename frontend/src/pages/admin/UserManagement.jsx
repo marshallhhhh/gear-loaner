@@ -37,16 +37,28 @@ export default function UserManagement() {
   }, [fetchPage]);
 
   async function toggleActive(userId, currentState) {
-    try {
-      await api(`/users/${userId}`, {
-        method: 'PUT',
-        token: await getToken(),
-        body: { isActive: !currentState },
-      });
-      refetchCurrentPage();
-    } catch (err) {
-      showAlert(err.message || 'Failed to update user status.');
+    if (profile?.id === userId) {
+      showAlert("You can't deactivate your account.");
+      return;
     }
+    confirm({
+      message: `Are you sure you want to ${currentState ? 'deactivate' : 'activate'} this user?`,
+      confirmText: currentState ? 'Deactivate' : 'Activate',
+      isDangerous: currentState,
+      onConfirm: async () => {
+        try {
+          await api(`/users/${userId}`, {
+            method: 'PUT',
+            token: await getToken(),
+            body: { isActive: !currentState },
+          });
+          closeConfirm();
+          refetchCurrentPage();
+        } catch (err) {
+          showAlert(err.message || 'Failed to update user status.');
+        }
+      },
+    });
   }
 
   async function toggleRole(userId, currentRole) {

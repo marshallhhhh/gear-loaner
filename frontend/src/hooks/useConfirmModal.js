@@ -1,6 +1,12 @@
 import { useState, useCallback } from 'react';
 
-const CLOSED = { isOpen: false, message: '', onConfirm: null, confirmText: 'Confirm', isDangerous: false };
+const CLOSED = {
+  isOpen: false,
+  message: '',
+  onConfirm: null,
+  confirmText: 'Confirm',
+  isDangerous: false,
+};
 
 export default function useConfirmModal() {
   const [confirmState, setConfirmState] = useState(CLOSED);

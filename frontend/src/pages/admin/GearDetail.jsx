@@ -129,7 +129,11 @@ export default function GearDetail() {
         setStatusChanging(true);
         setError('');
         try {
-          await api(`/gear/${id}/status`, { method: 'POST', token: await getToken(), body: { newStatus } });
+          await api(`/gear/${id}/status`, {
+            method: 'POST',
+            token: await getToken(),
+            body: { newStatus },
+          });
           closeConfirm();
           fetchDetail();
         } catch (err) {
@@ -147,7 +151,10 @@ export default function GearDetail() {
     return (
       <div className="text-center py-20">
         <p className="text-gray-500 mb-4">Gear not found.</p>
-        <button onClick={() => navigate('/admin/gear')} className="text-primary-600 hover:underline">
+        <button
+          onClick={() => navigate('/admin/gear')}
+          className="text-primary-600 hover:underline"
+        >
           ← Back to inventory
         </button>
       </div>
@@ -187,7 +194,10 @@ export default function GearDetail() {
           handleCategoryChange={handleCategoryChange}
           handleNewCategoryInput={handleNewCategoryInput}
           onSave={handleSave}
-          onCancel={() => { setEditing(false); resetForm(); }}
+          onCancel={() => {
+            setEditing(false);
+            resetForm();
+          }}
         />
       ) : (
         <GearInfoCards gear={gear} activeLoan={activeLoan} />

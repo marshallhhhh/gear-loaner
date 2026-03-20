@@ -108,7 +108,12 @@ export default function LoanHistory() {
                             isDangerous: true,
                             onConfirm: async () => {
                               try {
-                                await handleLoanOverride(loan.id, 'cancel', getToken, refetchCurrentPage);
+                                await handleLoanOverride(
+                                  loan.id,
+                                  'cancel',
+                                  getToken,
+                                  refetchCurrentPage,
+                                );
                                 closeConfirm();
                               } catch (err) {
                                 showAlert(err.message || 'Failed to force return loan.');
@@ -123,7 +128,12 @@ export default function LoanHistory() {
                       <button
                         onClick={async () => {
                           try {
-                            await handleLoanOverride(loan.id, 'extend', getToken, refetchCurrentPage);
+                            await handleLoanOverride(
+                              loan.id,
+                              'extend',
+                              getToken,
+                              refetchCurrentPage,
+                            );
                           } catch (err) {
                             showAlert(err.message || 'Failed to extend loan.');
                           }

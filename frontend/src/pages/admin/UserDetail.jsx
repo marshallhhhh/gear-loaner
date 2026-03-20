@@ -212,11 +212,11 @@ export default function UserDetail() {
                                       loan.id,
                                       'cancel',
                                       getToken,
-                                      refetchCurrentPage
+                                      refetchCurrentPage,
                                     );
                                     closeConfirm();
                                   } catch (err) {
-                                      showAlert(err.message || 'Failed to force return loan.');
+                                    showAlert(err.message || 'Failed to force return loan.');
                                   }
                                 },
                               })
@@ -228,7 +228,12 @@ export default function UserDetail() {
                           <button
                             onClick={async () => {
                               try {
-                                await handleLoanOverride(loan.id, 'extend', getToken, refetchCurrentPage);
+                                await handleLoanOverride(
+                                  loan.id,
+                                  'extend',
+                                  getToken,
+                                  refetchCurrentPage,
+                                );
                               } catch (err) {
                                 showAlert(err.message || 'Failed to extend loan.');
                               }
