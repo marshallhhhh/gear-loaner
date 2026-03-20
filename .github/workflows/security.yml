@@ -95,64 +95,7 @@ jobs:
 
 
   # ===========================================================================
-  # JOB 2 · SAST + General Code Scanning — CodeQL
-  # ===========================================================================
-  # CodeQL is GitHub's semantic code-analysis engine. It builds a queryable
-  # database from the source code and runs security queries against it to
-  # detect issues like injection sinks, path traversal, prototype pollution,
-  # insecure deserialization, and many other CWE-mapped vulnerabilities.
-  #
-  # Language target: javascript-typescript covers .js, .jsx, .ts, and .tsx —
-  # i.e. both the Express backend and the React/Vite frontend in one pass.
-  #
-  # Query suite: security-extended includes all default security queries plus
-  # additional experimental queries for broader OWASP coverage beyond what
-  # the default suite provides.
-  #
-  # Results appear in: Security → Code scanning alerts (category: codeql).
-  # ===========================================================================
-  codeql:
-    name: CodeQL Analysis (JavaScript / TypeScript)
-    runs-on: ubuntu-latest
-    permissions:
-      # Read source code and workflow metadata.
-      actions: read
-      contents: read
-      # Write SARIF results to the GitHub Security tab.
-      security-events: write
-
-    steps:
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Initialise the CodeQL toolchain for JavaScript/TypeScript and
-      # configure it to use the security-extended query suite.
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript-typescript
-          # security-extended = default security queries + additional CWE coverage.
-          # Use 'security-and-quality' if you also want code-quality alerts.
-          queries: security-extended
-
-      # Autobuild attempts to compile/build the project automatically.
-      # For interpreted JS/TS this is effectively a no-op but is kept for
-      # correctness and to support any future compiled assets.
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      # Execute the analysis and upload SARIF results to the Security tab.
-      # The 'category' label distinguishes this run from other SARIF sources
-      # (e.g. Semgrep) in the Security tab.
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: /language:javascript-typescript
-
-
-  # ===========================================================================
-  # JOB 3 · Supplementary SAST — Semgrep
+  # JOB 2 · Supplementary SAST — Semgrep
   # ===========================================================================
   # Semgrep adds fast, pattern-based static analysis that is complementary to
   # CodeQL's deeper dataflow approach. It applies curated community rule packs
@@ -222,7 +165,7 @@ jobs:
 
 
   # ===========================================================================
-  # JOB 4 · Dependency Vulnerability Audit — npm audit
+  # JOB 3 · Dependency Vulnerability Audit — npm audit
   # ===========================================================================
   # npm audit checks every installed dependency against the npm advisory
   # database for known CVEs. Backend and frontend are scanned as independent
