@@ -38,7 +38,6 @@ export default function usePagination(endpoint, { pageSize = 50, extraParams = {
       } finally {
         setLoading(false);
       }
-       
     },
     [endpoint, pageSize, getToken, JSON.stringify(extraParams)],
   );

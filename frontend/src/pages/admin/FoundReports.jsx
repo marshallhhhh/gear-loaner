@@ -23,22 +23,25 @@ export default function FoundReports() {
     onConfirm: null,
   });
 
-  const fetchReports = useCallback(async (page = 1) => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({ page, pageSize: 50 });
-      if (statusFilter) params.set('status', statusFilter);
-      const token = await getToken();
-      const data = await api(`/found-reports?${params}`, { token });
-      setReports(data.data);
-      setPagination(data.pagination);
-      setError('');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken, statusFilter]);
+  const fetchReports = useCallback(
+    async (page = 1) => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams({ page, pageSize: 50 });
+        if (statusFilter) params.set('status', statusFilter);
+        const token = await getToken();
+        const data = await api(`/found-reports?${params}`, { token });
+        setReports(data.data);
+        setPagination(data.pagination);
+        setError('');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [getToken, statusFilter],
+  );
 
   useEffect(() => {
     fetchReports(1);
