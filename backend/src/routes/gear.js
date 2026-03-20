@@ -13,7 +13,6 @@ import {
   getGear,
   createGear,
   updateGear,
-  deleteGear,
   changeGearStatus,
   getCategories,
 } from '../controllers/gearController.js';
@@ -29,7 +28,14 @@ router.get('/', authenticate, validateQuery(listGearQuerySchema), listGear);
 
 // Admin only
 router.post('/', authenticate, requireRole('ADMIN'), validate(createGearSchema), createGear);
-router.put('/:id', validateUuidParam(), authenticate, requireRole('ADMIN'), validate(updateGearSchema), updateGear);
+router.put(
+  '/:id',
+  validateUuidParam(),
+  authenticate,
+  requireRole('ADMIN'),
+  validate(updateGearSchema),
+  updateGear,
+);
 router.post(
   '/:id/status',
   validateUuidParam(),
@@ -38,6 +44,5 @@ router.post(
   validate(changeGearStatusSchema),
   changeGearStatus,
 );
-// router.delete('/:id', authenticate, requireRole('ADMIN'), deleteGear);
 
 export default router;

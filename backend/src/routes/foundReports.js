@@ -36,6 +36,12 @@ router.get(
   validateQuery(listFoundReportsQuerySchema),
   listFoundReports,
 );
-router.patch('/:id/close', validateUuidParam(), authenticate, requireRole('ADMIN'), closeFoundReport);
+router.patch(
+  '/:id/close',
+  validateUuidParam(),
+  authenticate,
+  requireRole('ADMIN'),
+  closeFoundReport,
+);
 
 export default router;

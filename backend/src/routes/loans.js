@@ -21,7 +21,13 @@ const router = Router();
 // Member
 router.get('/my', authenticate, getMyLoans);
 router.post('/checkout', authenticate, validate(checkoutSchema), checkout);
-router.post('/:id/return', validateUuidParam(), authenticate, validate(returnGearSchema), returnGear);
+router.post(
+  '/:id/return',
+  validateUuidParam(),
+  authenticate,
+  validate(returnGearSchema),
+  returnGear,
+);
 
 // Admin
 router.get('/', authenticate, requireRole('ADMIN'), validateQuery(listLoansQuerySchema), listLoans);

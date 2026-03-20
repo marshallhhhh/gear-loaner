@@ -28,6 +28,13 @@ router.put(
 // Admin
 router.get('/', authenticate, requireRole('ADMIN'), validateQuery(listUsersQuerySchema), listUsers);
 router.get('/:id', validateUuidParam(), authenticate, requireRole('ADMIN'), getUser);
-router.put('/:id', validateUuidParam(), authenticate, requireRole('ADMIN'), validate(updateUserSchema), updateUser);
+router.put(
+  '/:id',
+  validateUuidParam(),
+  authenticate,
+  requireRole('ADMIN'),
+  validate(updateUserSchema),
+  updateUser,
+);
 
 export default router;

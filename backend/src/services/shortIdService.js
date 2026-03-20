@@ -1,107 +1,101 @@
 import prisma from '../config/prisma.js';
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const MAX_SUFFIX = 999;
+const RANDOM_PREFIX_ATTEMPTS = 24;
 
 /**
- * Extracts the first `n` alpha characters from a string, uppercased.
- * Returns null if fewer than `n` alpha characters are found.
+ * Generates random uppercase letters.
  */
-function alphaPrefix(str, n) {
-  if (!str) return null;
-  const letters = str.replace(/[^a-zA-Z]/g, '').toUpperCase();
-  return letters.length >= n ? letters.slice(0, n) : letters.padEnd(n, 'X');
+function randomLetters(length = 3) {
+  return Array.from({ length }, () => LETTERS[Math.floor(Math.random() * 26)]).join('');
 }
 
 /**
- * Generates 3 random uppercase letters.
+ * Normalizes a source string into a 3-letter uppercase prefix.
+ * - strips non alphabetic chars
+ * - uses first 3 alpha chars when available
+ * - pads missing chars with random letters
+ * Returns null when source has no alpha characters.
  */
-function randomLetters() {
-  return Array.from({ length: 3 }, () => LETTERS[Math.floor(Math.random() * 26)]).join('');
+export function normalizePrefix(source) {
+  if (!source || typeof source !== 'string') return null;
+
+  const alpha = source.replace(/[^a-zA-Z]/g, '').toUpperCase();
+  if (!alpha) return null;
+
+  const head = alpha.slice(0, 3);
+  return head.length === 3 ? head : head + randomLetters(3 - head.length);
 }
 
 /**
- * Generates a random 3-digit string (001–999).
+ * Atomically reserves the next sequential value for a prefix.
  */
-function randomNumber() {
-  return String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
-}
+async function nextCounterValue(prefix) {
+  const rows = await prisma.$queryRaw`
+    INSERT INTO short_id_counters (prefix, current_value, created_at, updated_at)
+    VALUES (${prefix}, 1, NOW(), NOW())
+    ON CONFLICT (prefix)
+    DO UPDATE
+      SET current_value = short_id_counters.current_value + 1,
+          updated_at = NOW()
+    RETURNING current_value;
+  `;
 
-/**
- * Given a 3-letter prefix and the set of all existing shortIds,
- * returns the lowest available number suffix as a zero-padded 3-digit string.
- * e.g. "001", "002", ... "999"
- * Returns null if all 999 slots are taken.
- */
-function lowestAvailableNumber(prefix, existingIds) {
-  const used = new Set();
-  const prefixUpper = prefix.toUpperCase();
-  for (const id of existingIds) {
-    const match = id.match(/^([A-Z]{3})-(\d{3})$/);
-    if (match && match[1] === prefixUpper) {
-      used.add(match[2]);
-    }
+  if (!Array.isArray(rows) || rows.length === 0 || typeof rows[0].current_value !== 'number') {
+    throw new Error('Failed to reserve shortId counter value');
   }
-  for (let i = 1; i <= 999; i++) {
-    const num = String(i).padStart(3, '0');
-    if (!used.has(num)) return num;
-  }
-  return null;
+
+  return rows[0].current_value;
 }
 
 /**
- * Generates a unique short identifier in the format AAA-XXX.
- *
- * Priority for the 3-letter prefix:
- *  1. First 3 alpha chars of category
- *  2. First 3 alpha chars of name
- *  3. Random 3 letters
- *
- * The numeric suffix is the lowest available number for that prefix.
- * Falls back to random prefix + random number if all 999 slots for every
- * attempted prefix are exhausted.
+ * Chooses candidate prefixes in priority order: category, name, random.
+ */
+function buildCandidatePrefixes(name, category) {
+  const prefixes = [];
+
+  const categoryPrefix = normalizePrefix(category);
+  if (categoryPrefix) prefixes.push(categoryPrefix);
+
+  const namePrefix = normalizePrefix(name);
+  if (namePrefix && namePrefix !== categoryPrefix) prefixes.push(namePrefix);
+
+  for (let i = 0; i < RANDOM_PREFIX_ATTEMPTS; i++) {
+    prefixes.push(randomLetters(3));
+  }
+
+  return prefixes;
+}
+
+/**
+ * Generates a unique short identifier in the format AAA-999.
+ * Uses DB-backed atomic counters to avoid full-table scans.
  *
  * @param {string|null} name
  * @param {string|null} category
- * @param {string[]|null} existingIds - pass in if you already have them (avoids extra DB query)
  * @returns {Promise<string>}
  */
-export async function generateShortId(name, category, existingIds = null) {
-  // Fetch all current shortIds once if not provided
-  const allIds =
-    existingIds ??
-    (
-      await prisma.gear.findMany({
-        select: { shortId: true },
-      })
-    )
-      .map((g) => g.shortId)
-      .filter(Boolean);
+export async function generateShortId(name, category) {
+  const candidates = buildCandidatePrefixes(name, category);
 
-  const existingSet = new Set(allIds);
-
-  // Build list of prefixes to try in priority order
-  const prefixes = [];
-
-  const catPrefix = category ? alphaPrefix(category, 3) : null;
-  if (catPrefix) prefixes.push(catPrefix);
-
-  const namePrefix = name ? alphaPrefix(name, 3) : null;
-  if (namePrefix && namePrefix !== catPrefix) prefixes.push(namePrefix);
-
-  // Try each candidate prefix
-  for (const prefix of prefixes) {
-    const num = lowestAvailableNumber(prefix, allIds);
-    if (num !== null) {
-      const candidate = `${prefix}-${num}`;
-      if (!existingSet.has(candidate)) return candidate;
+  try {
+    for (const prefix of candidates) {
+      const next = await nextCounterValue(prefix);
+      if (next <= MAX_SUFFIX) {
+        return `${prefix}-${String(next).padStart(3, '0')}`;
+      }
     }
+  } catch (err) {
+    throw new Error(`Could not generate shortId: ${err.message}`, { cause: err });
   }
 
-  // Fallback: random prefix + random number, retry until unique
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const candidate = `${randomLetters()}-${randomNumber()}`;
-    if (!existingSet.has(candidate)) return candidate;
-  }
+  throw new Error('Could not generate shortId: all candidate prefixes are exhausted');
+}
 
-  throw new Error('Could not generate a unique shortId after 100 attempts');
+/**
+ * Pre-production helper to reset all prefix counters.
+ */
+export async function resetShortIdCounters() {
+  await prisma.$executeRaw`TRUNCATE TABLE short_id_counters;`;
 }
