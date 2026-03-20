@@ -49,7 +49,7 @@ export default function Navbar() {
                       Users
                     </Link>
                     <Link to="/admin/loans" className="hover:text-primary-200">
-                      All Loans
+                      Loans
                     </Link>
                     <Link to="/admin/found-reports" className="hover:text-primary-200">
                       Found Reports

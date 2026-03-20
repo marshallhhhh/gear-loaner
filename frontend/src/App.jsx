@@ -1,9 +1,8 @@
 import React, { lazy, Suspense, useState } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
-import { CameraIcon } from '@heroicons/react/24/outline';
 import Alert from './components/Alert.jsx';
 import QRScanner from './components/QRScanner.jsx';
 
@@ -158,6 +157,7 @@ function Home() {
   const { isAuthenticated } = useAuth();
   const [shortId, setShortId] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   function handleSearch() {
     const shortIdRegex = /^[A-Za-z]{3}-\d{3}$/;
@@ -183,7 +183,8 @@ function Home() {
     <div className="text-center py-16">
       <h1 className="text-4xl font-bold mb-4">TUMC Gear</h1>
       <p className="text-lg text-gray-600 mb-4 max-w-md mx-auto">
-        Self-service checkout for climbing gear. Scan or enter the code on any piece of gear to check it out or return it.
+        Self-service checkout for climbing gear. Scan or enter the code on any piece of gear to
+        check it out or return it.
       </p>
       <div className="flex gap-4 justify-center">
         <QRScanner onScan={handleScan} onError={(msg) => setError(msg)} />
@@ -197,17 +198,30 @@ function Home() {
         )}
       </div>
       <p className="py-3 text-gray-500">or enter a short ID</p>
-      <form onSubmit={(e) => {e.preventDefault(); handleSearch();}} className="flex justify-center max-w-sm mx-auto">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSearch();
+        }}
+        className="flex justify-center max-w-sm mx-auto"
+      >
         <input
-            type="text"
-            placeholder="SHO-123"
-            className="flex-1 border rounded-lg px-2 py-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
-            value={shortId}
-            onChange={(e) => setShortId(e.target.value.toUpperCase())}
+          type="text"
+          placeholder="SHO-123"
+          className="flex-1 border rounded-lg px-2 py-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
+          value={shortId}
+          onChange={(e) => setShortId(e.target.value.toUpperCase())}
         />
-        <button className="flex-1 border rounded-lg px-2 py-2 mx-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl" onClick={handleSearch}>Submit</button>
+        <button
+          className="flex-1 border rounded-lg px-2 py-2 mx-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
+          onClick={handleSearch}
+        >
+          Submit
+        </button>
       </form>
-      <Alert type="error" className="max-w-md mx-auto mt-8 text-lg">{error}</Alert>
+      <Alert type="error" className="max-w-md mx-auto mt-8 text-lg">
+        {error}
+      </Alert>
     </div>
   );
 }

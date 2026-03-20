@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import { formatDate } from '../../utils/formatDate.js';
-import { CameraIcon } from '@heroicons/react/24/outline';
 import Alert from '../../components/Alert.jsx';
 import LoadingState from '../../components/LoadingState.jsx';
 import PageHeader from '../../components/PageHeader.jsx';

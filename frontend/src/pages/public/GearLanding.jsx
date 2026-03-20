@@ -58,7 +58,7 @@ export default function GearLanding() {
         },
       });
       setGear(updatedGear);
-      setMessage('Gear checked out successfully!');
+      setMessage('Item checked out successfully!');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -87,7 +87,7 @@ export default function GearLanding() {
         body: { ...location, condition: 'good' },
       });
       setGear(updatedGear);
-      setMessage('Gear returned successfully!');
+      setMessage('Item returned successfully!');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -100,13 +100,13 @@ export default function GearLanding() {
   if (!gear) {
     return (
       <div className="text-center py-16">
-      <div className="text-center py-20 text-gray-500 text-2xl">Item not found</div>
-      <Link
+        <div className="text-center py-20 text-gray-500 text-2xl">Item not found</div>
+        <Link
           to="/"
           className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center text-lg"
         >
           Back to Search
-      </Link>
+        </Link>
       </div>
     );
   }
@@ -182,7 +182,11 @@ export default function GearLanding() {
 
           {!isAuthenticated && gear.loanStatus === 'AVAILABLE' && (
             <p className="text-center text-gray-500 text-sm">
-              <Link to="/login" state={{ from: `/gear/${id}` }} className="text-primary-600 hover:underline">
+              <Link
+                to="/login"
+                state={{ from: `/gear/${id}` }}
+                className="text-primary-600 hover:underline"
+              >
                 Sign in
               </Link>{' '}
               to check out this item.
