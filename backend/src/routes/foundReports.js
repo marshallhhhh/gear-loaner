@@ -2,7 +2,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { requireRole } from '../middleware/roles.js';
-import { validate, validateQuery } from '../middleware/validate.js';
+import { validate, validateQuery, validateUuidParam } from '../middleware/validate.js';
 import { createFoundReportSchema, listFoundReportsQuerySchema } from '../schemas.js';
 import {
   createFoundReport,
@@ -21,6 +21,7 @@ const createFoundReportLimiter = rateLimit({
 // Public (anyone who scans a QR code can submit a report)
 router.post(
   '/:id',
+  validateUuidParam(),
   createFoundReportLimiter,
   optionalAuth,
   validate(createFoundReportSchema),
@@ -35,6 +36,6 @@ router.get(
   validateQuery(listFoundReportsQuerySchema),
   listFoundReports,
 );
-router.patch('/:id/close', authenticate, requireRole('ADMIN'), closeFoundReport);
+router.patch('/:id/close', validateUuidParam(), authenticate, requireRole('ADMIN'), closeFoundReport);
 
 export default router;
