@@ -5,7 +5,10 @@ import { generateShortId } from '../services/shortIdService.js';
 import { getGearIdsWithOpenReports } from '../services/foundReportService.js';
 import { categoryName, normalizeGearCategory } from '../services/normalize.js';
 import { parsePagination } from '../utils/pagination.js';
-import { getCategories as getCategoriesCache, invalidateCategories } from '../services/categoryCache.js';
+import {
+  getCategories as getCategoriesCache,
+  invalidateCategories,
+} from '../services/categoryCache.js';
 
 /** Matches the AAA-XXX short ID format */
 const SHORT_ID_RE = /^[A-Za-z]{3}-\d{3}$/;
