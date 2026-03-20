@@ -19,15 +19,15 @@
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
-    "@supabase/supabase-js": "^2.49.1",
+    "@supabase/supabase-js": "^2.99.3",
     "cors": "^2.8.5",
     "csv-stringify": "^6.5.2",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
-    "jose": "^6.0.8",
-    "nodemailer": "^8.0.2",
+    "jose": "^6.2.2",
+    "nodemailer": "^8.0.3",
     "pino": "^10.3.1",
     "qrcode": "^1.5.4",
     "zod": "^4.3.6"
