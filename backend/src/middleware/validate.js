@@ -33,7 +33,12 @@ export function validateQuery(schema) {
       }));
       return res.status(400).json({ error: 'Validation failed', details });
     }
-    req.query = result.data;
+    Object.defineProperty(req, 'query', {
+      value: result.data,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    });
     next();
   };
 }
