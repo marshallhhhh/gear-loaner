@@ -76,7 +76,7 @@ jobs:
       # Full history is needed so Gitleaks can diff every commit in this push
       # or PR rather than only seeing the single merged snapshot.
       - name: Checkout repository (full history)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -127,7 +127,7 @@ jobs:
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Install Semgrep OSS via pip. Python 3 is pre-installed on ubuntu-latest.
       # Pin to a specific version for reproducible scans, e.g. semgrep==1.70.0.
@@ -195,7 +195,7 @@ jobs:
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Restore the npm cache for this workspace to avoid re-downloading
       # packages on every run. The cache key is tied to package-lock.json so
