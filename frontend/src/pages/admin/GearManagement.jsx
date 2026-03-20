@@ -2,11 +2,17 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
-import GearStatusBadge from '../../components/GearStatusBadge.jsx';
+import GearStatusBadge from '../../components/badges/GearStatusBadge.jsx';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
 import usePagination from '../../hooks/usePagination.js';
-import PaginationControls from '../../components/PaginationControls.jsx';
+import useDebouncedValue from '../../hooks/useDebouncedValue.js';
+import useConfirmModal from '../../hooks/useConfirmModal.js';
 import useGearForm from '../../hooks/useGearForm.js';
+import Alert from '../../components/Alert.jsx';
+import LoadingState from '../../components/LoadingState.jsx';
+import EmptyState from '../../components/EmptyState.jsx';
+import PageHeader from '../../components/PageHeader.jsx';
+import PaginationControls from '../../components/PaginationControls.jsx';
 
 export default function GearManagement() {
   const { getToken } = useAuth();
@@ -16,16 +22,10 @@ export default function GearManagement() {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [categories, setCategories] = useState([]);
   const statusFilter = searchParams.get('status') || '';
-
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   const {
     data: gear,
@@ -55,11 +55,7 @@ export default function GearManagement() {
   const [editingShortId, setEditingShortId] = useState(null);
 
   // Confirm modal state for delete
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    message: '',
-    onConfirm: null,
-  });
+  const { confirmState, close: closeConfirm } = useConfirmModal();
 
   // Fetch gear when filters or page change
   useEffect(() => {
@@ -132,16 +128,13 @@ export default function GearManagement() {
   }
 
   if (loading) {
-    return <div className="text-center py-20 text-gray-500">Loading gear…</div>;
+    return <LoadingState message="Loading gear…" />;
   }
 
   return (
     <div>
-      {fetchError && (
-        <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{fetchError}</div>
-      )}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Gear Inventory</h1>
+      <Alert>{fetchError}</Alert>
+      <PageHeader title="Gear Inventory">
         <div className="flex items-center gap-2">
           {selectedIds.size > 0 && (
             <button
@@ -163,7 +156,7 @@ export default function GearManagement() {
             {showForm ? 'Cancel' : '+ Add Gear'}
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Search & Filter */}
       <div className="mb-4 flex gap-2">
@@ -356,13 +349,7 @@ export default function GearManagement() {
                 </td>
               </tr>
             ))}
-            {gear.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center py-8 text-gray-400">
-                  No items found.
-                </td>
-              </tr>
-            )}
+            {gear.length === 0 && <EmptyState colSpan={6} />}
           </tbody>
         </table>
       </div>
@@ -374,15 +361,14 @@ export default function GearManagement() {
         label="items"
       />
 
-      {/* Confirm Modal */}
       <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        message={confirmModal.message}
-        confirmText={confirmModal.confirmText}
-        isDangerous={confirmModal.isDangerous}
+        isOpen={confirmState.isOpen}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        isDangerous={confirmState.isDangerous}
         isLoading={saving}
-        onConfirm={() => confirmModal.onConfirm?.()}
-        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={() => confirmState.onConfirm?.()}
+        onCancel={closeConfirm}
       />
     </div>
   );

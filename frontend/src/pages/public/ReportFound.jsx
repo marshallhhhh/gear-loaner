@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api } from '../../config/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useGeolocation from '../../hooks/useGeolocation.js';
+import Alert from '../../components/Alert.jsx';
 
 export default function ReportFound() {
   const { id } = useParams();
@@ -50,7 +51,7 @@ export default function ReportFound() {
     <div className="max-w-md mx-auto mt-12">
       <h1 className="text-2xl font-bold mb-6">Report Item as Found</h1>
 
-      {error && <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+      <Alert type="error">{error}</Alert>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

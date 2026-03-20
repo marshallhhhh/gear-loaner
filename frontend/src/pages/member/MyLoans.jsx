@@ -4,6 +4,9 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import { formatDate } from '../../utils/formatDate.js';
 import { CameraIcon } from '@heroicons/react/24/outline';
+import Alert from '../../components/Alert.jsx';
+import LoadingState from '../../components/LoadingState.jsx';
+import PageHeader from '../../components/PageHeader.jsx';
 
 export default function MyLoans() {
   const { getToken } = useAuth();
@@ -27,9 +30,7 @@ export default function MyLoans() {
     fetchLoans();
   }, [fetchLoans]);
 
-  if (loading) {
-    return <div className="text-center py-20 text-gray-500">Loading your loans…</div>;
-  }
+  if (loading) return <LoadingState message="Loading your loans…" />;
 
   const active = loans.filter((l) => l.status === 'ACTIVE');
   const returned = loans.filter((l) => l.status === 'RETURNED');
@@ -40,8 +41,7 @@ export default function MyLoans() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">My Loans</h1>
+      <PageHeader title="My Loans">
         <Link
           to="/scan"
           className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center"
@@ -49,11 +49,9 @@ export default function MyLoans() {
           <CameraIcon className="h-5 w-5 mr-2" aria-hidden="true" />
           Scan
         </Link>
-      </div>
+      </PageHeader>
 
-      {fetchError && (
-        <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{fetchError}</div>
-      )}
+      <Alert type="error">{fetchError}</Alert>
 
       {active.length === 0 && returned.length === 0 && !fetchError && (
         <p className="text-gray-500 text-center py-12">

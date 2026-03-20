@@ -47,7 +47,7 @@ export default function ConfirmModal({
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none disabled:opacity-50"
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none disabled:opacity-50"
             aria-label="Close"
           >
             ×

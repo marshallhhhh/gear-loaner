@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QRScanner from '../../components/QRScanner.jsx';
+import Alert from '../../components/Alert.jsx';
 
 export default function ScanPage() {
   const [error, setError] = useState('');
@@ -21,12 +22,12 @@ export default function ScanPage() {
       <h1 className="text-2xl font-bold mb-6 text-center">Scan Gear QR Code</h1>
 
       {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm text-center">
+        <Alert type="error" className="text-center">
           {error}
           <button onClick={() => setError('')} className="ml-2 underline text-red-800">
             Try Again
           </button>
-        </div>
+        </Alert>
       )}
 
       <QRScanner onScan={handleScan} onError={(msg) => setError(msg)} />

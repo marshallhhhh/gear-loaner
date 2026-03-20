@@ -2,9 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import { formatDateTime } from '../../utils/formatDate.js';
+import useConfirmModal from '../../hooks/useConfirmModal.js';
+import Alert from '../../components/Alert.jsx';
+import LoadingState from '../../components/LoadingState.jsx';
+import EmptyState from '../../components/EmptyState.jsx';
+import PageHeader from '../../components/PageHeader.jsx';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
-import ActionBadge from '../../components/ActionBadge.jsx';
+import ActionBadge from '../../components/badges/ActionBadge.jsx';
 import DetailModal from '../../components/DetailModal.jsx';
 import { buildHistoryFields } from '../../utils/historyFields.js';
 
@@ -17,11 +22,7 @@ export default function FoundReports() {
   const [statusFilter, setStatusFilter] = useState('OPEN');
   const [closing, setClosing] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    message: '',
-    onConfirm: null,
-  });
+  const { confirmState, confirm, close: closeConfirm } = useConfirmModal();
 
   const fetchReports = useCallback(
     async (page = 1) => {
@@ -48,8 +49,7 @@ export default function FoundReports() {
   }, [fetchReports]);
 
   async function handleClose(reportId) {
-    setConfirmModal({
-      isOpen: true,
+    confirm({
       message: 'Close this found report? This marks it as resolved.',
       confirmText: 'Close Report',
       isDangerous: false,
@@ -58,7 +58,7 @@ export default function FoundReports() {
         try {
           const token = await getToken();
           await api(`/found-reports/${reportId}/close`, { method: 'PATCH', token });
-          setConfirmModal((m) => ({ ...m, isOpen: false }));
+          closeConfirm();
           fetchReports(pagination?.page || 1);
         } catch (err) {
           setError(err.message);
@@ -70,14 +70,14 @@ export default function FoundReports() {
   }
 
   if (loading) {
-    return <div className="text-center py-20 text-gray-500">Loading reports…</div>;
+    return <LoadingState message="Loading reports…" />;
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Found Reports</h1>
+      <PageHeader title="Found Reports" />
 
-      {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">{error}</div>}
+      <Alert>{error}</Alert>
 
       {/* Filter */}
       <div className="mb-4">
@@ -178,13 +178,7 @@ export default function FoundReports() {
                 </td>
               </tr>
             ))}
-            {reports.length === 0 && (
-              <tr>
-                <td colSpan={7} className="text-center py-8 text-gray-400">
-                  No found reports.
-                </td>
-              </tr>
-            )}
+            {reports.length === 0 && <EmptyState colSpan={7} message="No found reports." />}
           </tbody>
         </table>
       </div>
@@ -205,13 +199,13 @@ export default function FoundReports() {
       />
 
       <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        message={confirmModal.message}
-        confirmText={confirmModal.confirmText}
-        isDangerous={confirmModal.isDangerous}
+        isOpen={confirmState.isOpen}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        isDangerous={confirmState.isDangerous}
         isLoading={closing}
-        onConfirm={() => confirmModal.onConfirm?.()}
-        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={() => confirmState.onConfirm?.()}
+        onCancel={closeConfirm}
       />
     </div>
   );

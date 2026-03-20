@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import QRCode from 'qrcode';
 import TagTemplate from './TagTemplate';
+import AlertModal from './AlertModal.jsx';
+import useAlertModal from '../hooks/useAlertModal.js';
 
 // ── Predefined page sizes (mm) ──────────────────────────────────────
 const PAGE_SIZES = {
@@ -83,6 +85,7 @@ async function generateQrDataUrl(gear) {
 export default function TagTemplateEditor({ gearItems = [], onClose }) {
   const saved = loadSavedConfig();
   const [config, setConfig] = useState(saved || DEFAULT_CONFIG);
+  const { alertState, showAlert, closeAlert } = useAlertModal();
   // Map of (gear.shortId || gear.id) -> QR data URL
   const [qrDataUrls, setQrDataUrls] = useState({});
 
@@ -141,7 +144,7 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
   function handlePrint() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('Please allow popups to print tags.');
+      showAlert('Please allow popups to print tags.');
       return;
     }
 
@@ -446,6 +449,14 @@ export default function TagTemplateEditor({ gearItems = [], onClose }) {
             </div>
           </div>
         </div>
+
+        <AlertModal
+          isOpen={alertState.isOpen}
+          message={alertState.message}
+          title={alertState.title}
+          okText={alertState.okText}
+          onClose={closeAlert}
+        />
       </div>
     </div>
   );

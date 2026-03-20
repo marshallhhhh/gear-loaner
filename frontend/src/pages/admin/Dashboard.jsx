@@ -2,11 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
+import LoadingState from '../../components/LoadingState.jsx';
+import PageHeader from '../../components/PageHeader.jsx';
+import AlertModal from '../../components/AlertModal.jsx';
+import useAlertModal from '../../hooks/useAlertModal.js';
 
 export default function Dashboard() {
   const { getToken } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { alertState, showAlert, closeAlert } = useAlertModal();
 
   useEffect(() => {
     async function fetch() {
@@ -39,12 +44,12 @@ export default function Dashboard() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert(err.message);
+      showAlert(err.message || 'Failed to export report.');
     }
   }
 
   if (loading) {
-    return <div className="text-center py-20 text-gray-500">Loading dashboard…</div>;
+    return <LoadingState message="Loading dashboard…" />;
   }
 
   // Use explicit text color classes so Tailwind's purge/JIT recognizes them.
@@ -111,7 +116,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+      <PageHeader title="Admin Dashboard" />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
         {cards.map((card) => (
@@ -178,6 +183,14 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        message={alertState.message}
+        title={alertState.title}
+        okText={alertState.okText}
+        onClose={closeAlert}
+      />
     </div>
   );
 }

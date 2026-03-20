@@ -1,49 +1,44 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
 import DetailModal from '../../components/DetailModal.jsx';
 import usePagination from '../../hooks/usePagination.js';
+import useConfirmModal from '../../hooks/useConfirmModal.js';
+import { handleLoanOverride } from '../../utils/loanActions.js';
+import BackLink from '../../components/BackLink.jsx';
+import LoadingState from '../../components/LoadingState.jsx';
+import EmptyState from '../../components/EmptyState.jsx';
+import ActiveStatusBadge from '../../components/badges/ActiveStatusBadge.jsx';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
-
-function LoanStatusBadge({ loan }) {
-  const overdue = loan.status === 'ACTIVE' && new Date(loan.dueDate) < new Date();
-  const label = overdue ? 'OVERDUE' : loan.status;
-  const cls = overdue
-    ? 'bg-red-100 text-red-800'
-    : loan.status === 'ACTIVE'
-      ? 'bg-yellow-100 text-yellow-800'
-      : 'bg-green-100 text-green-800';
-  return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
-      {label}
-    </span>
-  );
-}
+import LoanStatusBadge from '../../components/badges/LoanStatusBadge.jsx';
+import UserRoleBadge from '../../components/badges/UserRoleBadge.jsx';
+import AlertModal from '../../components/AlertModal.jsx';
+import useAlertModal from '../../hooks/useAlertModal.js';
 
 export default function UserDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { getToken } = useAuth();
+  const { getToken, profile } = useAuth();
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedLoan, setSelectedLoan] = useState(null);
-  const [confirmModal, setConfirmModal] = useState({ isOpen: false, message: '', onConfirm: null });
+  const { confirmState, confirm, close: closeConfirm } = useConfirmModal();
+  const { alertState, showAlert, closeAlert } = useAlertModal();
 
   const fetchUser = useCallback(async () => {
     try {
       const data = await api(`/users/${id}`, { token: await getToken() });
       setUser(data);
     } catch (err) {
-      alert(err.message);
+      showAlert(err.message || 'Failed to load user.');
     } finally {
       setLoading(false);
     }
-  }, [id, getToken]);
+  }, [id, getToken, showAlert]);
 
   useEffect(() => {
     fetchUser();
@@ -61,27 +56,8 @@ export default function UserDetail() {
     fetchPage(1);
   }, [fetchPage]);
 
-  async function handleOverride(loanId, action) {
-    try {
-      const body =
-        action === 'cancel'
-          ? { status: 'CANCELLED' }
-          : { dueDate: new Date(Date.now() + 7 * 86400000).toISOString() };
-
-      await api(`/loans/${loanId}/override`, {
-        method: 'PUT',
-        token: await getToken(),
-        body,
-      });
-      refetchCurrentPage();
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
   async function toggleActive() {
-    setConfirmModal({
-      isOpen: true,
+    confirm({
       message: `${user.isActive ? 'Deactivate' : 'Activate'} this user?`,
       confirmText: user.isActive ? 'Deactivate' : 'Activate',
       isDangerous: user.isActive,
@@ -92,19 +68,23 @@ export default function UserDetail() {
             token: await getToken(),
             body: { isActive: !user.isActive },
           });
-          setConfirmModal((m) => ({ ...m, isOpen: false }));
+          closeConfirm();
           fetchUser();
         } catch (err) {
-          alert(err.message);
+          showAlert(err.message || 'Failed to update user status.');
         }
       },
     });
   }
 
   async function toggleRole() {
-    const newRole = user.role === 'ADMIN' ? 'MEMBER' : 'ADMIN';
-    setConfirmModal({
-      isOpen: true,
+    if (profile?.id === user?.id) {
+      showAlert("You can't change your own role.");
+      return;
+    }
+
+    const newRole = user.role === 'ADMIN' ? 'Member' : 'Admin';
+    confirm({
       message: `Change this user's role to ${newRole}?`,
       confirmText: 'Change Role',
       isDangerous: false,
@@ -113,19 +93,19 @@ export default function UserDetail() {
           await api(`/users/${id}`, {
             method: 'PUT',
             token: await getToken(),
-            body: { role: newRole },
+            body: { role: newRole.toUpperCase() },
           });
-          setConfirmModal((m) => ({ ...m, isOpen: false }));
+          closeConfirm();
           fetchUser();
         } catch (err) {
-          alert(err.message);
+          showAlert(err.message || 'Failed to update user role.');
         }
       },
     });
   }
 
   if (loading) {
-    return <div className="text-center py-20 text-gray-500">Loading user…</div>;
+    return <LoadingState message="Loading user…" />;
   }
 
   if (!user) {
@@ -134,13 +114,7 @@ export default function UserDetail() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Back */}
-      <button
-        onClick={() => navigate('/admin/users')}
-        className="text-sm text-primary-600 hover:underline mb-4 inline-flex items-center gap-1"
-      >
-        ← Users
-      </button>
+      <BackLink to="/admin/users" label="Users" />
 
       {/* Profile card */}
       <div className="bg-white rounded-xl shadow p-6 mb-6">
@@ -149,22 +123,8 @@ export default function UserDetail() {
             <h1 className="text-2xl font-bold">{user.fullName || '—'}</h1>
             <p className="text-gray-500 text-sm mt-0.5">{user.email}</p>
             <div className="flex items-center gap-2 mt-3">
-              <span
-                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                  user.role === 'ADMIN'
-                    ? 'bg-purple-100 text-purple-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {user.role}
-              </span>
-              <span
-                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                  user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}
-              >
-                {user.isActive ? 'Active' : 'Inactive'}
-              </span>
+              <UserRoleBadge role={user.role} />
+              <ActiveStatusBadge isActive={user.isActive} />
               <span className="text-xs text-gray-400">Joined {formatDate(user.createdAt)}</span>
             </div>
           </div>
@@ -205,7 +165,7 @@ export default function UserDetail() {
       </div>
 
       {loansLoading ? (
-        <div className="text-center py-10 text-gray-500">Loading loans…</div>
+        <LoadingState message="Loading loans…" />
       ) : (
         <>
           <div className="bg-white rounded-xl shadow overflow-x-auto">
@@ -241,13 +201,43 @@ export default function UserDetail() {
                       {loan.status === 'ACTIVE' && (
                         <>
                           <button
-                            onClick={() => handleOverride(loan.id, 'cancel')}
+                            onClick={() =>
+                              confirm({
+                                message: 'Are you sure you want to cancel this loan?',
+                                confirmText: 'Force Return',
+                                isDangerous: true,
+                                onConfirm: async () => {
+                                  try {
+                                    await handleLoanOverride(
+                                      loan.id,
+                                      'cancel',
+                                      getToken,
+                                      refetchCurrentPage,
+                                    );
+                                    closeConfirm();
+                                  } catch (err) {
+                                    showAlert(err.message || 'Failed to force return loan.');
+                                  }
+                                },
+                              })
+                            }
                             className="text-green-600 hover:underline text-xs"
                           >
                             Force Return
                           </button>
                           <button
-                            onClick={() => handleOverride(loan.id, 'extend')}
+                            onClick={async () => {
+                              try {
+                                await handleLoanOverride(
+                                  loan.id,
+                                  'extend',
+                                  getToken,
+                                  refetchCurrentPage,
+                                );
+                              } catch (err) {
+                                showAlert(err.message || 'Failed to extend loan.');
+                              }
+                            }}
                             className="text-primary-600 hover:underline text-xs"
                           >
                             Extend 7d
@@ -257,13 +247,7 @@ export default function UserDetail() {
                     </td>
                   </tr>
                 ))}
-                {loans.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="text-center py-8 text-gray-400">
-                      No loans found.
-                    </td>
-                  </tr>
-                )}
+                {loans.length === 0 && <EmptyState colSpan={5} message="No loans found." />}
               </tbody>
             </table>
           </div>
@@ -302,14 +286,20 @@ export default function UserDetail() {
         />
       )}
 
-      {/* Confirm modal */}
       <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        message={confirmModal.message}
-        confirmText={confirmModal.confirmText}
-        isDangerous={confirmModal.isDangerous}
-        onConfirm={() => confirmModal.onConfirm?.()}
-        onCancel={() => setConfirmModal((m) => ({ ...m, isOpen: false }))}
+        isOpen={confirmState.isOpen}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        isDangerous={confirmState.isDangerous}
+        onConfirm={() => confirmState.onConfirm?.()}
+        onCancel={closeConfirm}
+      />
+      <AlertModal
+        isOpen={alertState.isOpen}
+        message={alertState.message}
+        title={alertState.title}
+        okText={alertState.okText}
+        onClose={closeAlert}
       />
     </div>
   );

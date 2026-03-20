@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
-import GearStatusBadge from '../../components/GearStatusBadge.jsx';
+import GearStatusBadge from '../../components/badges/GearStatusBadge.jsx';
 import useGeolocation from '../../hooks/useGeolocation.js';
+import Alert from '../../components/Alert.jsx';
+import LoadingState from '../../components/LoadingState.jsx';
 
 export default function GearLanding() {
   const { id } = useParams();
@@ -93,9 +95,7 @@ export default function GearLanding() {
     }
   }
 
-  if (loading) {
-    return <div className="text-center py-20 text-gray-500">Loading gear details…</div>;
-  }
+  if (loading) return <LoadingState message="Loading gear details…" />;
 
   if (!gear) {
     return <div className="text-center py-20 text-red-600">{error || 'Gear not found'}</div>;
@@ -128,10 +128,8 @@ export default function GearLanding() {
           </div>
         )}
 
-        {error && <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
-        {message && (
-          <div className="bg-green-50 text-green-700 p-3 rounded mb-4 text-sm">{message}</div>
-        )}
+        <Alert type="error">{error}</Alert>
+        <Alert type="success">{message}</Alert>
 
         {/* Actions */}
         <div className="space-y-3 mt-6">
