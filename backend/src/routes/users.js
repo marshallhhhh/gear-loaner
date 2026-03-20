@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireRole } from '../middleware/roles.js';
 import { validate, validateQuery, validateUuidParam } from '../middleware/validate.js';
+import { authSensitiveLimiter, profileUpdateLimiter } from '../middleware/rateLimiters.js';
 import { updateUserSchema, updateMyProfileSchema, listUsersQuerySchema } from '../schemas.js';
 import {
   listUsers,
@@ -14,8 +15,15 @@ import {
 const router = Router();
 
 // Own profile
-router.get('/me', authenticate, getMyProfile);
-router.put('/me', authenticate, validate(updateMyProfileSchema), updateMyProfile);
+router.get('/me', authSensitiveLimiter, authenticate, getMyProfile);
+router.put(
+  '/me',
+  authSensitiveLimiter,
+  profileUpdateLimiter,
+  authenticate,
+  validate(updateMyProfileSchema),
+  updateMyProfile,
+);
 
 // Admin
 router.get('/', authenticate, requireRole('ADMIN'), validateQuery(listUsersQuerySchema), listUsers);
