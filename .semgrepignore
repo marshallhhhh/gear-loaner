@@ -1,0 +1,25 @@
+# =============================================================================
+# .semgrepignore — Semgrep scan exclusions
+# =============================================================================
+#
+# Paths listed here are excluded from Semgrep SAST scans.
+# The syntax is identical to .gitignore.
+#
+# Semgrep already ignores node_modules/, .git/, and several other standard
+# directories by default. This file adds project-specific exclusions.
+#
+# =============================================================================
+
+# Build output — generated JavaScript bundles, not authored source code.
+frontend/dist/
+
+# Coverage reports — HTML/JS/CSS artefacts from vitest/istanbul, not source.
+backend/coverage/
+
+# Prisma generated client — auto-generated code that should not be audited.
+# If Prisma client code is regenerated in CI, this directory may not exist
+# locally but it is good practice to exclude it.
+node_modules/
+
+# Static public assets — images, fonts, and other binary/non-JS files.
+frontend/public/static/
