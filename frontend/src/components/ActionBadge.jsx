@@ -1,4 +1,4 @@
-export const actionColors = {
+const actionColors = {
   Checkout: 'bg-blue-100 text-blue-800',
   Return: 'bg-green-100 text-green-800',
   'Reported Found': 'bg-red-100 text-red-800',

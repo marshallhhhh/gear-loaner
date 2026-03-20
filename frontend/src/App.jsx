@@ -1,7 +1,9 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
+import { useAuth } from './context/AuthContext.jsx';
 import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import { CameraIcon } from '@heroicons/react/24/outline';
 
 const Login = lazy(() => import('./pages/auth/Login.jsx'));
 const SignUp = lazy(() => import('./pages/auth/SignUp.jsx'));
@@ -160,6 +162,8 @@ export default function App() {
 }
 
 function Home() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <div className="text-center py-16">
       <h1 className="text-4xl font-bold mb-4">TUMC Gear</h1>
@@ -170,16 +174,19 @@ function Home() {
       <div className="flex gap-4 justify-center">
         <Link
           to="/scan"
-          className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium"
+          className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center"
         >
-          📷 Scan QR Code
+          <CameraIcon className="h-7 w-7 mr-2" aria-hidden="true" />
+          Scan QR Code
         </Link>
-        <Link
-          to="/login"
-          className="border border-primary-600 text-primary-600 hover:bg-primary-50 px-6 py-3 rounded-lg font-medium"
-        >
-          Sign In
-        </Link>
+        {!isAuthenticated && (
+          <Link
+            to="/login"
+            className="border border-primary-600 text-primary-600 hover:bg-primary-50 px-6 py-3 rounded-lg font-medium inline-flex items-center"
+          >
+            Sign In
+          </Link>
+        )}
       </div>
     </div>
   );

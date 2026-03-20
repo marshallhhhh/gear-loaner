@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import { formatDateTime } from '../../utils/formatDate.js';
@@ -23,26 +23,29 @@ export default function FoundReports() {
     onConfirm: null,
   });
 
+  const fetchReports = useCallback(
+    async (page = 1) => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams({ page, pageSize: 50 });
+        if (statusFilter) params.set('status', statusFilter);
+        const token = await getToken();
+        const data = await api(`/found-reports?${params}`, { token });
+        setReports(data.data);
+        setPagination(data.pagination);
+        setError('');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [getToken, statusFilter],
+  );
+
   useEffect(() => {
     fetchReports(1);
-  }, [statusFilter]);
-
-  async function fetchReports(page = 1) {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({ page, pageSize: 50 });
-      if (statusFilter) params.set('status', statusFilter);
-      const token = await getToken();
-      const data = await api(`/found-reports?${params}`, { token });
-      setReports(data.data);
-      setPagination(data.pagination);
-      setError('');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+  }, [fetchReports]);
 
   async function handleClose(reportId) {
     setConfirmModal({

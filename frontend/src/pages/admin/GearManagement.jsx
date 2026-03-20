@@ -108,29 +108,6 @@ export default function GearManagement() {
     }
   }
 
-  async function handleDelete(id) {
-    setConfirmModal({
-      isOpen: true,
-      message: 'Delete this gear item? This cannot be undone.',
-      confirmText: 'Delete',
-      isDangerous: true,
-      onConfirm: async () => {
-        try {
-          await api(`/gear/${id}`, { method: 'DELETE', token: await getToken() });
-          setSelectedIds((prev) => {
-            const next = new Set(prev);
-            next.delete(id);
-            return next;
-          });
-          setConfirmModal({ ...confirmModal, isOpen: false });
-          refetchCurrentPage();
-        } catch (err) {
-          alert(err.message);
-        }
-      },
-    });
-  }
-
   function toggleSelect(id) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -209,7 +186,7 @@ export default function GearManagement() {
           <option value="AVAILABLE">Available</option>
           <option value="CHECKED_OUT">Checked Out</option>
           <option value="LOST">Lost</option>
-          <option value="HAS_OPEN_REPORTS">Has Open Found Reports</option>
+          <option value="HAS_OPEN_REPORTS">Reported Found</option>
           <option value="RETIRED">Retired</option>
         </select>
       </div>
@@ -337,7 +314,6 @@ export default function GearManagement() {
               <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Category</th>
               <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Gear ID</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-right px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -373,18 +349,9 @@ export default function GearManagement() {
                       e.stopPropagation();
                       handleEdit(item);
                     }}
-                    className="text-primary-600 hover:underline text-xs"
+                    className="text-primary-600 hover:underline text-sm"
                   >
                     Edit
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(item.id);
-                    }}
-                    className="text-red-600 hover:underline text-xs"
-                  >
-                    Delete
                   </button>
                 </td>
               </tr>
