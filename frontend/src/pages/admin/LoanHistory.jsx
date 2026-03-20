@@ -6,6 +6,7 @@ import usePagination from '../../hooks/usePagination.js';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import DetailModal from '../../components/DetailModal.jsx';
+import LoanStatusBadge from '../../components/LoanStatusBadge.jsx';
 
 export default function LoanHistory() {
   const { getToken } = useAuth();
@@ -105,19 +106,7 @@ export default function LoanHistory() {
                   {formatDate(loan.dueDate)}
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                      isOverdue(loan)
-                        ? 'bg-red-100 text-red-800'
-                        : loan.status === 'ACTIVE'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : loan.status === 'CANCELLED'
-                            ? 'bg-gray-100 text-gray-800'
-                            : 'bg-green-100 text-green-800'
-                    }`}
-                  >
-                    {isOverdue(loan) ? 'Overdue' : loan.status}
-                  </span>
+                  <LoanStatusBadge loan={loan} />
                 </td>
                 <td className="px-4 py-3 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                   {loan.status === 'ACTIVE' && (
@@ -160,23 +149,7 @@ export default function LoanHistory() {
       <DetailModal
         isOpen={!!selectedLoan}
         title={selectedLoan ? selectedLoan.gearItem.name : ''}
-        badge={
-          selectedLoan ? (
-            <span
-              className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                isOverdue(selectedLoan)
-                  ? 'bg-red-100 text-red-800'
-                  : selectedLoan.status === 'ACTIVE'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : selectedLoan.status === 'CANCELLED'
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'bg-green-100 text-green-800'
-              }`}
-            >
-              {isOverdue(selectedLoan) ? 'Overdue' : selectedLoan.status}
-            </span>
-          ) : null
-        }
+        badge={selectedLoan ? <LoanStatusBadge loan={selectedLoan} /> : null}
         fields={
           selectedLoan
             ? [

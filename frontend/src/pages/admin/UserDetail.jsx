@@ -7,21 +7,7 @@ import DetailModal from '../../components/DetailModal.jsx';
 import usePagination from '../../hooks/usePagination.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
-
-function LoanStatusBadge({ loan }) {
-  const overdue = loan.status === 'ACTIVE' && new Date(loan.dueDate) < new Date();
-  const label = overdue ? 'OVERDUE' : loan.status;
-  const cls = overdue
-    ? 'bg-red-100 text-red-800'
-    : loan.status === 'ACTIVE'
-      ? 'bg-yellow-100 text-yellow-800'
-      : 'bg-green-100 text-green-800';
-  return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
-      {label}
-    </span>
-  );
-}
+import LoanStatusBadge from '../../components/LoanStatusBadge.jsx';
 
 export default function UserDetail() {
   const { id } = useParams();
