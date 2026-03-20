@@ -4,6 +4,50 @@ import { countOpenReports } from '../services/foundReportService.js';
 import { categoryName, normalizeGearCategory } from '../services/normalize.js';
 import logger from '../config/logger.js';
 
+const DASHBOARD_STATS_TTL_MS = 60 * 1000;
+
+// Cache the full dashboard stats payload and when it expires.
+let dashboardStatsCache = {
+  data: null,
+  expiresAt: 0,
+};
+
+// Tracks an in-flight refresh so concurrent requests share one DB fetch.
+let dashboardStatsRefreshPromise = null;
+
+async function loadDashboardStats() {
+  const [
+    totalGear,
+    availableGear,
+    checkedOut,
+    lost,
+    activeLoans,
+    overdueLoans,
+    totalUsers,
+    openFoundReports,
+  ] = await Promise.all([
+    prisma.gear.count(),
+    prisma.gear.count({ where: { loanStatus: 'AVAILABLE' } }),
+    prisma.gear.count({ where: { loanStatus: 'CHECKED_OUT' } }),
+    prisma.gear.count({ where: { loanStatus: 'LOST' } }),
+    prisma.loan.count({ where: { status: 'ACTIVE' } }),
+    prisma.loan.count({ where: { status: 'ACTIVE', dueDate: { lt: new Date() } } }),
+    prisma.profile.count(),
+    countOpenReports(),
+  ]);
+
+  return {
+    totalGear,
+    availableGear,
+    checkedOut,
+    lost,
+    openFoundReports,
+    activeLoans,
+    overdueLoans,
+    totalUsers,
+  };
+}
+
 export async function exportLoans(req, res, next) {
   try {
     const loans = await prisma.loan.findMany({
@@ -71,36 +115,31 @@ export async function exportGear(req, res, next) {
 
 export async function getDashboardStats(req, res, next) {
   try {
-    const [
-      totalGear,
-      availableGear,
-      checkedOut,
-      lost,
-      activeLoans,
-      overdueLoans,
-      totalUsers,
-      openFoundReports,
-    ] = await Promise.all([
-      prisma.gear.count(),
-      prisma.gear.count({ where: { loanStatus: 'AVAILABLE' } }),
-      prisma.gear.count({ where: { loanStatus: 'CHECKED_OUT' } }),
-      prisma.gear.count({ where: { loanStatus: 'LOST' } }),
-      prisma.loan.count({ where: { status: 'ACTIVE' } }),
-      prisma.loan.count({ where: { status: 'ACTIVE', dueDate: { lt: new Date() } } }),
-      prisma.profile.count(),
-      countOpenReports(),
-    ]);
+    const now = Date.now();
 
-    res.json({
-      totalGear,
-      availableGear,
-      checkedOut,
-      lost,
-      openFoundReports,
-      activeLoans,
-      overdueLoans,
-      totalUsers,
-    });
+    // Fast path: return cached payload while still within TTL.
+    if (dashboardStatsCache.data && dashboardStatsCache.expiresAt > now) {
+      return res.json(dashboardStatsCache.data);
+    }
+
+    if (!dashboardStatsRefreshPromise) {
+      dashboardStatsRefreshPromise = (async () => {
+        const freshStats = await loadDashboardStats();
+
+        // Only cache successful fetches; failed requests are never cached.
+        dashboardStatsCache = {
+          data: freshStats,
+          expiresAt: Date.now() + DASHBOARD_STATS_TTL_MS,
+        };
+
+        return freshStats;
+      })().finally(() => {
+        dashboardStatsRefreshPromise = null;
+      });
+    }
+
+    const stats = await dashboardStatsRefreshPromise;
+    return res.json(stats);
   } catch (err) {
     next(err);
   }
