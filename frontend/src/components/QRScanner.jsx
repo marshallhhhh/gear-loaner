@@ -75,7 +75,7 @@ export default function QRScanner({ onScan, onError }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       <div
         id="qr-reader"
         ref={containerRef}
@@ -89,14 +89,15 @@ export default function QRScanner({ onScan, onError }) {
             onClick={startScanning}
             className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium text-lg inline-flex items-center"
           >
-            <CameraIcon className="h-6 w-6 mr-2" aria-hidden="true" />
-            Start Scanner
+            <CameraIcon className="h-6 w-6 mr-3" aria-hidden="true" />
+            Scan QR
           </button>
         ) : (
           <button
             onClick={stopScanning}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium"
+            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium text-lg inline-flex items-center"
           >
+            <CameraIcon className="h-6 w-6 mr-3" aria-hidden="true" />
             Stop Scanner
           </button>
         )}

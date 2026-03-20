@@ -43,11 +43,10 @@ export default function MyLoans() {
     <div>
       <PageHeader title="My Loans">
         <Link
-          to="/scan"
-          className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center"
+          to="/"
+          className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center text-lg"
         >
-          <CameraIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-          Scan
+          Borrow
         </Link>
       </PageHeader>
 
@@ -55,7 +54,7 @@ export default function MyLoans() {
 
       {active.length === 0 && returned.length === 0 && !fetchError && (
         <p className="text-gray-500 text-center py-12">
-          You don't have any loans yet. Scan a QR code to check out gear!
+          You don't have any loans yet. Click borrow to check out gear!
         </p>
       )}
 

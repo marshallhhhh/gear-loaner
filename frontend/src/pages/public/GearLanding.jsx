@@ -98,7 +98,17 @@ export default function GearLanding() {
   if (loading) return <LoadingState message="Loading gear details…" />;
 
   if (!gear) {
-    return <div className="text-center py-20 text-red-600">{error || 'Gear not found'}</div>;
+    return (
+      <div className="text-center py-16">
+      <div className="text-center py-20 text-gray-500 text-2xl">Item not found</div>
+      <Link
+          to="/"
+          className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center text-lg"
+        >
+          Back to Search
+      </Link>
+      </div>
+    );
   }
 
   const isCurrentUserLoan = gear.loans?.some(
@@ -175,7 +185,7 @@ export default function GearLanding() {
               <Link to="/login" className="text-primary-600 hover:underline">
                 Sign in
               </Link>{' '}
-              to check out this gear.
+              to check out this item.
             </p>
           )}
 
