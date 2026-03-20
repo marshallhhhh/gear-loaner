@@ -37,6 +37,6 @@ router.post(
   validate(changeGearStatusSchema),
   changeGearStatus,
 );
-router.delete('/:id', authenticate, requireRole('ADMIN'), deleteGear);
+// router.delete('/:id', authenticate, requireRole('ADMIN'), deleteGear);
 
 export default router;
