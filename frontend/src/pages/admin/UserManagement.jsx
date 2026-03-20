@@ -6,7 +6,7 @@ import ConfirmModal from '../../components/ConfirmModal.jsx';
 import usePagination from '../../hooks/usePagination.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate } from '../../utils/formatDate.js';
-import UserRoleBadge from '../../components/UserRoleBadge.jsx';
+import UserRoleBadge from '../../components/badges/UserRoleBadge.jsx';
 
 export default function UserManagement() {
   const { getToken } = useAuth();

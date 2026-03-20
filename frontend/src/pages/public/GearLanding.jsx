@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
-import GearStatusBadge from '../../components/GearStatusBadge.jsx';
+import GearStatusBadge from '../../components/badges/GearStatusBadge.jsx';
 import useGeolocation from '../../hooks/useGeolocation.js';
 
 export default function GearLanding() {

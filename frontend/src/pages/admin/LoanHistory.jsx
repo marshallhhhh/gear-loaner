@@ -6,7 +6,7 @@ import usePagination from '../../hooks/usePagination.js';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import DetailModal from '../../components/DetailModal.jsx';
-import LoanStatusBadge from '../../components/LoanStatusBadge.jsx';
+import LoanStatusBadge from '../../components/badges/LoanStatusBadge.jsx';
 
 export default function LoanHistory() {
   const { getToken } = useAuth();

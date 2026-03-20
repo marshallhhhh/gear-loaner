@@ -4,7 +4,7 @@ import { api } from '../../config/api.js';
 import { formatDateTime } from '../../utils/formatDate.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
-import ActionBadge from '../../components/ActionBadge.jsx';
+import ActionBadge from '../../components/badges/ActionBadge.jsx';
 import DetailModal from '../../components/DetailModal.jsx';
 import { buildHistoryFields } from '../../utils/historyFields.js';
 

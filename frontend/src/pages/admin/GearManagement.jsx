@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
-import GearStatusBadge from '../../components/GearStatusBadge.jsx';
+import GearStatusBadge from '../../components/badges/GearStatusBadge.jsx';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
 import usePagination from '../../hooks/usePagination.js';
 import PaginationControls from '../../components/PaginationControls.jsx';

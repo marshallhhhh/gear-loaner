@@ -7,8 +7,8 @@ import DetailModal from '../../components/DetailModal.jsx';
 import usePagination from '../../hooks/usePagination.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
-import LoanStatusBadge from '../../components/LoanStatusBadge.jsx';
-import UserRoleBadge from '../../components/UserRoleBadge.jsx';
+import LoanStatusBadge from '../../components/badges/LoanStatusBadge.jsx';
+import UserRoleBadge from '../../components/badges/UserRoleBadge.jsx';
 
 export default function UserDetail() {
   const { id } = useParams();
