@@ -15,7 +15,8 @@ import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import LoanStatusBadge from '../../components/badges/LoanStatusBadge.jsx';
 import UserRoleBadge from '../../components/badges/UserRoleBadge.jsx';
-import Alert from '../../components/Alert.jsx';
+import AlertModal from '../../components/AlertModal.jsx';
+import useAlertModal from '../../hooks/useAlertModal.js';
 
 export default function UserDetail() {
   const { id } = useParams();
@@ -26,17 +27,18 @@ export default function UserDetail() {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedLoan, setSelectedLoan] = useState(null);
   const { confirmState, confirm, close: closeConfirm } = useConfirmModal();
+  const { alertState, showAlert, closeAlert } = useAlertModal();
 
   const fetchUser = useCallback(async () => {
     try {
       const data = await api(`/users/${id}`, { token: await getToken() });
       setUser(data);
     } catch (err) {
-      alert(err.message);
+      showAlert(err.message || 'Failed to load user.');
     } finally {
       setLoading(false);
     }
-  }, [id, getToken]);
+  }, [id, getToken, showAlert]);
 
   useEffect(() => {
     fetchUser();
@@ -69,7 +71,7 @@ export default function UserDetail() {
           closeConfirm();
           fetchUser();
         } catch (err) {
-          alert(err.message);
+          showAlert(err.message || 'Failed to update user status.');
         }
       },
     });
@@ -77,7 +79,7 @@ export default function UserDetail() {
 
   async function toggleRole() {
     if (profile?.id === user?.id) {
-      alert("You can't change your own role.");
+      showAlert("You can't change your own role.");
       return;
     }
 
@@ -96,7 +98,7 @@ export default function UserDetail() {
           closeConfirm();
           fetchUser();
         } catch (err) {
-          alert(err.message);
+          showAlert(err.message || 'Failed to update user role.');
         }
       },
     });
@@ -214,7 +216,7 @@ export default function UserDetail() {
                                     );
                                     closeConfirm();
                                   } catch (err) {
-                                    alert(err.message);
+                                      showAlert(err.message || 'Failed to force return loan.');
                                   }
                                 },
                               })
@@ -224,7 +226,13 @@ export default function UserDetail() {
                             Force Return
                           </button>
                           <button
-                            onClick={() => handleLoanOverride(loan.id, 'extend', getToken, refetchCurrentPage)}
+                            onClick={async () => {
+                              try {
+                                await handleLoanOverride(loan.id, 'extend', getToken, refetchCurrentPage);
+                              } catch (err) {
+                                showAlert(err.message || 'Failed to extend loan.');
+                              }
+                            }}
                             className="text-primary-600 hover:underline text-xs"
                           >
                             Extend 7d
@@ -280,6 +288,13 @@ export default function UserDetail() {
         isDangerous={confirmState.isDangerous}
         onConfirm={() => confirmState.onConfirm?.()}
         onCancel={closeConfirm}
+      />
+      <AlertModal
+        isOpen={alertState.isOpen}
+        message={alertState.message}
+        title={alertState.title}
+        okText={alertState.okText}
+        onClose={closeAlert}
       />
     </div>
   );

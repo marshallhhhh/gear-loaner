@@ -13,6 +13,8 @@ import DetailModal from '../../components/DetailModal.jsx';
 import LoanStatusBadge from '../../components/badges/LoanStatusBadge.jsx';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
 import useConfirmModal from '../../hooks/useConfirmModal.js';
+import AlertModal from '../../components/AlertModal.jsx';
+import useAlertModal from '../../hooks/useAlertModal.js';
 
 export default function LoanHistory() {
   const { getToken } = useAuth();
@@ -20,6 +22,7 @@ export default function LoanHistory() {
   const filter = searchParams.get('status') || '';
   const [selectedLoan, setSelectedLoan] = useState(null);
   const { confirmState, confirm, close: closeConfirm } = useConfirmModal();
+  const { alertState, showAlert, closeAlert } = useAlertModal();
 
   const {
     data: loans,
@@ -108,7 +111,7 @@ export default function LoanHistory() {
                                 await handleLoanOverride(loan.id, 'cancel', getToken, refetchCurrentPage);
                                 closeConfirm();
                               } catch (err) {
-                                alert(err.message);
+                                showAlert(err.message || 'Failed to force return loan.');
                               }
                             },
                           })
@@ -118,7 +121,13 @@ export default function LoanHistory() {
                         Force Return
                       </button>
                       <button
-                        onClick={() => handleLoanOverride(loan.id, 'extend', getToken, refetchCurrentPage)}
+                        onClick={async () => {
+                          try {
+                            await handleLoanOverride(loan.id, 'extend', getToken, refetchCurrentPage);
+                          } catch (err) {
+                            showAlert(err.message || 'Failed to extend loan.');
+                          }
+                        }}
                         className="text-primary-600 hover:underline text-xs"
                       >
                         Extend 7d
@@ -178,6 +187,13 @@ export default function LoanHistory() {
         isDangerous={confirmState.isDangerous}
         onConfirm={() => confirmState.onConfirm?.()}
         onCancel={closeConfirm}
+      />
+      <AlertModal
+        isOpen={alertState.isOpen}
+        message={alertState.message}
+        title={alertState.title}
+        okText={alertState.okText}
+        onClose={closeAlert}
       />
     </div>
   );

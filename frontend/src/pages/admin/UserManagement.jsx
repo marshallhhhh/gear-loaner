@@ -13,6 +13,8 @@ import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate } from '../../utils/formatDate.js';
 import UserRoleBadge from '../../components/badges/UserRoleBadge.jsx';
 import ActiveStatusBadge from '../../components/badges/ActiveStatusBadge.jsx';
+import AlertModal from '../../components/AlertModal.jsx';
+import useAlertModal from '../../hooks/useAlertModal.js';
 
 export default function UserManagement() {
   const { getToken, profile } = useAuth();
@@ -20,6 +22,7 @@ export default function UserManagement() {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search);
   const { confirmState, confirm, close: closeConfirm } = useConfirmModal();
+  const { alertState, showAlert, closeAlert } = useAlertModal();
 
   const {
     data: users,
@@ -42,13 +45,13 @@ export default function UserManagement() {
       });
       refetchCurrentPage();
     } catch (err) {
-      alert(err.message);
+      showAlert(err.message || 'Failed to update user status.');
     }
   }
 
   async function toggleRole(userId, currentRole) {
     if (profile?.id === userId) {
-      alert("You can't change your own role.");
+      showAlert("You can't change your own role.");
       return;
     }
     const newRole = currentRole === 'ADMIN' ? 'Member' : 'Admin';
@@ -66,7 +69,7 @@ export default function UserManagement() {
           closeConfirm();
           refetchCurrentPage();
         } catch (err) {
-          alert(err.message);
+          showAlert(err.message || 'Failed to update user role.');
         }
       },
     });
@@ -157,6 +160,13 @@ export default function UserManagement() {
         isDangerous={confirmState.isDangerous}
         onConfirm={() => confirmState.onConfirm?.()}
         onCancel={closeConfirm}
+      />
+      <AlertModal
+        isOpen={alertState.isOpen}
+        message={alertState.message}
+        title={alertState.title}
+        okText={alertState.okText}
+        onClose={closeAlert}
       />
     </div>
   );

@@ -4,11 +4,14 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import LoadingState from '../../components/LoadingState.jsx';
 import PageHeader from '../../components/PageHeader.jsx';
+import AlertModal from '../../components/AlertModal.jsx';
+import useAlertModal from '../../hooks/useAlertModal.js';
 
 export default function Dashboard() {
   const { getToken } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { alertState, showAlert, closeAlert } = useAlertModal();
 
   useEffect(() => {
     async function fetch() {
@@ -41,7 +44,7 @@ export default function Dashboard() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert(err.message);
+      showAlert(err.message || 'Failed to export report.');
     }
   }
 
@@ -180,6 +183,14 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        message={alertState.message}
+        title={alertState.title}
+        okText={alertState.okText}
+        onClose={closeAlert}
+      />
     </div>
   );
 }
