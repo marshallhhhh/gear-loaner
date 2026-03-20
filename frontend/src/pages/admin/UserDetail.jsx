@@ -8,6 +8,7 @@ import usePagination from '../../hooks/usePagination.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import LoanStatusBadge from '../../components/LoanStatusBadge.jsx';
+import UserRoleBadge from '../../components/UserRoleBadge.jsx';
 
 export default function UserDetail() {
   const { id } = useParams();
@@ -135,15 +136,7 @@ export default function UserDetail() {
             <h1 className="text-2xl font-bold">{user.fullName || '—'}</h1>
             <p className="text-gray-500 text-sm mt-0.5">{user.email}</p>
             <div className="flex items-center gap-2 mt-3">
-              <span
-                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                  user.role === 'ADMIN'
-                    ? 'bg-purple-100 text-purple-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {user.role}
-              </span>
+              <UserRoleBadge role={user.role} />
               <span
                 className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
                   user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

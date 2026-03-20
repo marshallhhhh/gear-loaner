@@ -6,6 +6,7 @@ import ConfirmModal from '../../components/ConfirmModal.jsx';
 import usePagination from '../../hooks/usePagination.js';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate } from '../../utils/formatDate.js';
+import UserRoleBadge from '../../components/UserRoleBadge.jsx';
 
 export default function UserManagement() {
   const { getToken } = useAuth();
@@ -112,15 +113,7 @@ export default function UserManagement() {
                 <td className="px-4 py-3 font-medium">{user.fullName || '—'}</td>
                 <td className="px-4 py-3 text-gray-500">{user.email}</td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                      user.role === 'ADMIN'
-                        ? 'bg-purple-100 text-purple-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {user.role}
-                  </span>
+                  <UserRoleBadge role={user.role} />
                 </td>
                 <td className="px-4 py-3">
                   <span
