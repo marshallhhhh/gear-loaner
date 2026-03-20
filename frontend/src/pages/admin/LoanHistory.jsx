@@ -11,12 +11,15 @@ import PageHeader from '../../components/PageHeader.jsx';
 import PaginationControls from '../../components/PaginationControls.jsx';
 import DetailModal from '../../components/DetailModal.jsx';
 import LoanStatusBadge from '../../components/badges/LoanStatusBadge.jsx';
+import ConfirmModal from '../../components/ConfirmModal.jsx';
+import useConfirmModal from '../../hooks/useConfirmModal.js';
 
 export default function LoanHistory() {
   const { getToken } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get('status') || '';
   const [selectedLoan, setSelectedLoan] = useState(null);
+  const { confirmState, confirm, close: closeConfirm } = useConfirmModal();
 
   const {
     data: loans,
@@ -95,7 +98,21 @@ export default function LoanHistory() {
                   {loan.status === 'ACTIVE' && (
                     <>
                       <button
-                        onClick={() => handleLoanOverride(loan.id, 'cancel', getToken, refetchCurrentPage)}
+                        onClick={() =>
+                          confirm({
+                            message: 'Are you sure you want to cancel this loan?',
+                            confirmText: 'Force Return',
+                            isDangerous: true,
+                            onConfirm: async () => {
+                              try {
+                                await handleLoanOverride(loan.id, 'cancel', getToken, refetchCurrentPage);
+                                closeConfirm();
+                              } catch (err) {
+                                alert(err.message);
+                              }
+                            },
+                          })
+                        }
                         className="text-green-600 hover:underline text-xs"
                       >
                         Force Return
@@ -153,6 +170,14 @@ export default function LoanHistory() {
             : []
         }
         onClose={() => setSelectedLoan(null)}
+      />
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        isDangerous={confirmState.isDangerous}
+        onConfirm={() => confirmState.onConfirm?.()}
+        onCancel={closeConfirm}
       />
     </div>
   );

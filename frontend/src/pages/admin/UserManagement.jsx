@@ -15,7 +15,7 @@ import UserRoleBadge from '../../components/badges/UserRoleBadge.jsx';
 import ActiveStatusBadge from '../../components/badges/ActiveStatusBadge.jsx';
 
 export default function UserManagement() {
-  const { getToken } = useAuth();
+  const { getToken, profile } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search);
@@ -47,7 +47,11 @@ export default function UserManagement() {
   }
 
   async function toggleRole(userId, currentRole) {
-    const newRole = currentRole === 'ADMIN' ? 'MEMBER' : 'ADMIN';
+    if (profile?.id === userId) {
+      alert("You can't change your own role.");
+      return;
+    }
+    const newRole = currentRole === 'ADMIN' ? 'Member' : 'Admin';
     confirm({
       message: `Change this user's role to ${newRole}?`,
       confirmText: 'Change Role',
@@ -57,7 +61,7 @@ export default function UserManagement() {
           await api(`/users/${userId}`, {
             method: 'PUT',
             token: await getToken(),
-            body: { role: newRole },
+            body: { role: newRole.toUpperCase() },
           });
           closeConfirm();
           refetchCurrentPage();

@@ -15,10 +15,11 @@ import PaginationControls from '../../components/PaginationControls.jsx';
 import { formatDate, formatDateTime } from '../../utils/formatDate.js';
 import LoanStatusBadge from '../../components/badges/LoanStatusBadge.jsx';
 import UserRoleBadge from '../../components/badges/UserRoleBadge.jsx';
+import Alert from '../../components/Alert.jsx';
 
 export default function UserDetail() {
   const { id } = useParams();
-  const { getToken } = useAuth();
+  const { getToken, profile } = useAuth();
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -75,7 +76,12 @@ export default function UserDetail() {
   }
 
   async function toggleRole() {
-    const newRole = user.role === 'ADMIN' ? 'MEMBER' : 'ADMIN';
+    if (profile?.id === user?.id) {
+      alert("You can't change your own role.");
+      return;
+    }
+
+    const newRole = user.role === 'ADMIN' ? 'Member' : 'Admin';
     confirm({
       message: `Change this user's role to ${newRole}?`,
       confirmText: 'Change Role',
@@ -85,7 +91,7 @@ export default function UserDetail() {
           await api(`/users/${id}`, {
             method: 'PUT',
             token: await getToken(),
-            body: { role: newRole },
+            body: { role: newRole.toUpperCase() },
           });
           closeConfirm();
           fetchUser();
@@ -193,7 +199,26 @@ export default function UserDetail() {
                       {loan.status === 'ACTIVE' && (
                         <>
                           <button
-                            onClick={() => handleLoanOverride(loan.id, 'cancel', getToken, refetchCurrentPage)}
+                            onClick={() =>
+                              confirm({
+                                message: 'Are you sure you want to cancel this loan?',
+                                confirmText: 'Force Return',
+                                isDangerous: true,
+                                onConfirm: async () => {
+                                  try {
+                                    await handleLoanOverride(
+                                      loan.id,
+                                      'cancel',
+                                      getToken,
+                                      refetchCurrentPage
+                                    );
+                                    closeConfirm();
+                                  } catch (err) {
+                                    alert(err.message);
+                                  }
+                                },
+                              })
+                            }
                             className="text-green-600 hover:underline text-xs"
                           >
                             Force Return
