@@ -5,6 +5,14 @@ import logger from '../config/logger.js';
 const supabaseUrl = process.env.SUPABASE_URL;
 const JWKS = createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`));
 
+function isExplicitlyUnverified(payload) {
+  if (payload.email_verified === false) return true;
+  if (Object.prototype.hasOwnProperty.call(payload, 'email_confirmed_at')) {
+    return !payload.email_confirmed_at;
+  }
+  return false;
+}
+
 /**
  * Verifies the Supabase JWT using JWKS and attaches user + profile to req.
  * Sets req.user (token payload) and req.profile (database profile).
@@ -22,6 +30,10 @@ export async function authenticate(req, res, next) {
       issuer: `${supabaseUrl}/auth/v1`,
       audience: 'authenticated',
     });
+
+    if (isExplicitlyUnverified(payload)) {
+      return res.status(403).json({ error: 'Email must be verified' });
+    }
 
     req.user = payload;
 
@@ -68,6 +80,10 @@ export async function optionalAuth(req, res, next) {
       issuer: `${supabaseUrl}/auth/v1`,
       audience: 'authenticated',
     });
+
+    if (isExplicitlyUnverified(payload)) {
+      return next();
+    }
 
     req.user = payload;
 
