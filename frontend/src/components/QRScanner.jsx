@@ -96,7 +96,7 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
         id="qr-reader"
         ref={containerRef}
         className="w-full max-w-md mx-auto rounded-lg overflow-hidden bg-black"
-        style={scanning ? { aspectRatio: '1 / 1' } : { height: 0 }}
+        style={scanning ? { aspectRatio: '1 / 1', width: '100%' } : { height: 0 }}
       />
 
       <div className="text-center">
