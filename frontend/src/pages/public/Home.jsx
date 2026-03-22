@@ -11,6 +11,17 @@ export default function Home() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const navigate = useNavigate();
 
+  function formatShortIdInput(value) {
+    const compact = value
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 6);
+    if (compact.length <= 3) {
+      return compact;
+    }
+    return `${compact.slice(0, 3)}-${compact.slice(3)}`;
+  }
+
   function handleSearch() {
     const shortIdRegex = /^[A-Za-z]{3}-\d{3}$/;
     if (shortIdRegex.test(shortId.trim())) {
@@ -33,6 +44,7 @@ export default function Home() {
 
   return (
     <div className="text-center py-16">
+      <img src="/static/logo.png" alt="TUMC Gear" className="mx-auto h-20 mb-4" />
       <h1 className="text-4xl font-bold mb-4">TUMC Gear</h1>
       <p className="text-lg text-gray-600 mb-4 max-w-md mx-auto">
         Self-service checkout for climbing gear. Scan or enter the code on any piece of gear to
@@ -75,8 +87,9 @@ export default function Home() {
           type="text"
           placeholder="SHO-123"
           className="flex-1 min-w-0 border rounded-lg px-2 py-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
+          maxLength={7}
           value={shortId}
-          onChange={(e) => setShortId(e.target.value.toUpperCase())}
+          onChange={(e) => setShortId(formatShortIdInput(e.target.value))}
         />
         <button
           className="border rounded-lg px-2 py-2 mx-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"

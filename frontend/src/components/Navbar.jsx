@@ -26,8 +26,13 @@ export default function Navbar() {
   return (
     <header className="bg-primary-700 text-white shadow-md">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <Link to="/" onClick={() => setOpen(false)} className="text-xl font-bold tracking-tight">
-          TUMC Gear
+        <Link
+          to="/"
+          onClick={() => setOpen(false)}
+          className="flex items-center text-xl font-bold tracking-tight"
+        >
+          <img src="/static/logo.png" alt="TUMC Gear" className="h-8 w-auto mr-2" />
+          <span>TUMC Gear</span>
         </Link>
 
         <div className="flex items-center">
