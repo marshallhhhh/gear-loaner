@@ -71,7 +71,7 @@ export default function GearStatusActions({
             key={newStatus}
             onClick={() => onStatusChange(newStatus, label)}
             disabled={statusChanging}
-            className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 ${colorClass}`}
+            className={`px-4 py-2 rounded-lg text-xs font-medium disabled:opacity-50 ${colorClass}`}
           >
             {statusChanging ? '…' : label}
           </button>
@@ -80,7 +80,7 @@ export default function GearStatusActions({
           <button
             onClick={onCloseReports}
             disabled={statusChanging}
-            className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 bg-blue-600 hover:bg-blue-700 text-white"
+            className="px-4 py-2 rounded-lg text-xs font-medium disabled:opacity-50 bg-blue-600 hover:bg-blue-700 text-white"
           >
             {statusChanging ? '…' : 'Close Found Reports'}
           </button>
