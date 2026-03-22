@@ -53,8 +53,8 @@ export default function SignUp() {
       <div className="max-w-md mx-auto mt-12 text-center">
         <h1 className="text-2xl font-bold mb-4">Check Your Email</h1>
         <p className="text-gray-600 mb-4">
-          We've sent a confirmation link to <strong>{email.toLowerCase()}</strong>. Please click it to activate
-          your account.
+          We've sent a confirmation link to <strong>{email.toLowerCase()}</strong>. Please click it
+          to activate your account.
         </p>
         <Link to="/login" className="text-primary-600 hover:underline">
           Back to Sign In
