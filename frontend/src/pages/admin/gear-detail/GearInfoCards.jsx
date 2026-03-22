@@ -1,7 +1,24 @@
+import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import GearStatusBadge from '../../../components/badges/GearStatusBadge.jsx';
 import { formatDate } from '../../../utils/formatDate.js';
 
+const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
+
 export default function GearInfoCards({ gear, activeLoan }) {
+  const [qrDataUrl, setQrDataUrl] = useState('');
+
+  useEffect(() => {
+    const target = gear.shortId || gear.id;
+    QRCode.toDataURL(`${APP_URL}/gear/${target}`, {
+      width: 200,
+      margin: 1,
+      color: { dark: '#000000', light: '#ffffff' },
+    })
+      .then(setQrDataUrl)
+      .catch(() => {});
+  }, [gear.id, gear.shortId]);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       {/* Gear Details Card */}
@@ -61,14 +78,14 @@ export default function GearInfoCards({ gear, activeLoan }) {
         {/* QR Code */}
         <div className="bg-white rounded-xl shadow p-6 text-center">
           <h2 className="text-lg font-semibold mb-4">QR Code</h2>
-          {gear.qrCodeUrl ? (
+          {qrDataUrl ? (
             <img
-              src={gear.qrCodeUrl}
+              src={qrDataUrl}
               alt={`QR code for ${gear.name}`}
               className="mx-auto w-48 h-48 object-contain"
             />
           ) : (
-            <p className="text-gray-400 text-sm">No QR code generated</p>
+            <p className="text-gray-400 text-sm">Generating QR code…</p>
           )}
         </div>
 

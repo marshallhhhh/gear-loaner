@@ -1,6 +1,5 @@
 import prisma from '../config/prisma.js';
 import logger from '../config/logger.js';
-import { generateAndStoreQRCode } from '../services/qrCodeService.js';
 import { generateShortId } from '../services/shortIdService.js';
 import { getGearIdsWithOpenReports } from '../services/foundReportService.js';
 import { categoryName, normalizeGearCategory } from '../services/normalize.js';
@@ -154,18 +153,6 @@ export async function createGear(req, res, next) {
       gear.categoryId = categoryRecord.id;
     } else {
       gear.category = null;
-    }
-
-    // Generate and store QR code (pointing to /gear/{shortId})
-    try {
-      const qrCodeUrl = await generateAndStoreQRCode(gear.id, gear.shortId);
-      await prisma.gear.update({
-        where: { id: gear.id },
-        data: { qrCodeUrl },
-      });
-      gear.qrCodeUrl = qrCodeUrl;
-    } catch (qrErr) {
-      logger.error({ err: qrErr }, 'QR code generation failed');
     }
 
     res.status(201).json(gear);

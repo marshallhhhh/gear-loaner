@@ -42,6 +42,8 @@ export default function Login() {
           <input
             id="login-email"
             type="email"
+            name="email"
+            autoComplete="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -56,6 +58,8 @@ export default function Login() {
           <input
             id="login-password"
             type="password"
+            name="password"
+            autoComplete="current-password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}

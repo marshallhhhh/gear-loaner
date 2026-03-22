@@ -157,6 +157,7 @@ function Home() {
   const { isAuthenticated } = useAuth();
   const [shortId, setShortId] = useState('');
   const [error, setError] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
   const navigate = useNavigate();
 
   function handleSearch() {
@@ -186,9 +187,13 @@ function Home() {
         Self-service checkout for climbing gear. Scan or enter the code on any piece of gear to
         check it out or return it.
       </p>
-      <div className="flex gap-4 justify-center">
-        <QRScanner onScan={handleScan} onError={(msg) => setError(msg)} />
-        {!isAuthenticated && (
+      <div className="flex gap-4 justify-center items-start">
+        <QRScanner
+          onScan={handleScan}
+          onError={(msg) => setError(msg)}
+          onScanningChange={setScannerOpen}
+        />
+        {!isAuthenticated && !scannerOpen && (
           <Link
             to="/login"
             className="border border-primary-600 text-primary-600 hover:bg-primary-50 px-6 py-3 rounded-lg font-medium inline-flex items-center text-xl"
@@ -197,6 +202,16 @@ function Home() {
           </Link>
         )}
       </div>
+      {!isAuthenticated && scannerOpen && (
+        <div className="flex justify-center mt-4">
+          <Link
+            to="/login"
+            className="border border-primary-600 text-primary-600 hover:bg-primary-50 px-6 py-3 rounded-lg font-medium inline-flex items-center text-xl"
+          >
+            Sign In
+          </Link>
+        </div>
+      )}
       <p className="py-3 text-gray-500">or enter a short ID</p>
       <form
         onSubmit={(e) => {
@@ -208,12 +223,12 @@ function Home() {
         <input
           type="text"
           placeholder="SHO-123"
-          className="flex-1 border rounded-lg px-2 py-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
+          className="flex-1 min-w-0 border rounded-lg px-2 py-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
           value={shortId}
           onChange={(e) => setShortId(e.target.value.toUpperCase())}
         />
         <button
-          className="flex-1 border rounded-lg px-2 py-2 mx-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
+          className="border rounded-lg px-2 py-2 mx-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
           onClick={handleSearch}
         >
           Submit
