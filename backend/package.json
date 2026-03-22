@@ -39,5 +39,6 @@
     "prettier": "^3.8.1",
     "prisma": "^6.4.1",
     "vitest": "^4.1.0"
-  }
+  },
+  "postinstall": "prisma generate"
 }
