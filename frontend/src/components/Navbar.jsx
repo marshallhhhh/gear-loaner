@@ -34,6 +34,9 @@ export default function Navbar() {
           <nav className="hidden sm:flex items-center gap-4 text-sm" aria-label="Main navigation">
             {isAuthenticated ? (
               <>
+                <Link to="/" className="hover:text-primary-200">
+                  Borrow
+                </Link>
                 <Link to="/my-loans" className="hover:text-primary-200">
                   My Loans
                 </Link>

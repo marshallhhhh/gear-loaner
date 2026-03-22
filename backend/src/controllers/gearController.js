@@ -326,17 +326,19 @@ export async function changeGearStatus(req, res, next) {
         }),
       );
 
-      // Record the status change action
-      operations.push(
-        tx.action.create({
-          data: {
-            type: actionType,
-            userId: req.profile.id,
-            gearItemId: gearId,
-            details: { previousStatus: gear.loanStatus, newStatus },
-          },
-        }),
-      );
+      // Record the status change action (skip if loan cancellation already covers it)
+      if (!(gear.loanStatus === 'CHECKED_OUT' && newStatus === 'AVAILABLE')) {
+        operations.push(
+          tx.action.create({
+            data: {
+              type: actionType,
+              userId: req.profile.id,
+              gearItemId: gearId,
+              details: { previousStatus: gear.loanStatus, newStatus },
+            },
+          }),
+        );
+      }
 
       await Promise.all(operations);
 

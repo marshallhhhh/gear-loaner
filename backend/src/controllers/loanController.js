@@ -311,6 +311,14 @@ export async function overrideLoan(req, res, next) {
           where: { id: updated.gearItemId },
           data: { loanStatus: 'AVAILABLE' },
         });
+        await tx.action.create({
+          data: {
+            type: 'ADMIN_CANCELLED_LOAN',
+            userId: req.profile.id,
+            gearItemId: updated.gearItemId,
+            details: { reason: 'Admin cancelled loan via override' },
+          },
+        });
       }
       return updated;
     });

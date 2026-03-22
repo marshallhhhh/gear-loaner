@@ -23,7 +23,7 @@ export default function GearInfoCards({ gear, activeLoan }) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       {/* Gear Details Card */}
       <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-lg font-semibold mb-4">Gear Details</h2>
+        <h2 className="text-md font-semibold mb-4">Gear Details</h2>
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between">
             <dt className="text-gray-500">Category</dt>
@@ -77,7 +77,7 @@ export default function GearInfoCards({ gear, activeLoan }) {
       <div className="space-y-6">
         {/* QR Code */}
         <div className="bg-white rounded-xl shadow p-6 text-center">
-          <h2 className="text-lg font-semibold mb-4">QR Code</h2>
+          <h2 className="text-md font-semibold mb-4">QR Code</h2>
           {qrDataUrl ? (
             <img
               src={qrDataUrl}
@@ -91,7 +91,7 @@ export default function GearInfoCards({ gear, activeLoan }) {
 
         {/* Current Loan Status */}
         <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Current Loan Status</h2>
+          <h2 className="text-md font-semibold mb-4">Current Loan Status</h2>
           {activeLoan ? (
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
