@@ -5,7 +5,9 @@ import { CameraIcon } from '@heroicons/react/24/outline';
 export default function QRScanner({ onScan, onError, onScanningChange }) {
   const scannerRef = useRef(null);
   const containerRef = useRef(null);
+  const detachVideoListenersRef = useRef(() => {});
   const [scanning, setScanning] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(false);
 
   useEffect(() => {
     onScanningChange?.(scanning);
@@ -13,6 +15,7 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
 
   useEffect(() => {
     return () => {
+      detachVideoListenersRef.current();
       const s = scannerRef.current;
       if (s) {
         s.stop()
@@ -28,9 +31,38 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
     };
   }, []);
 
+  function watchVideoReadiness() {
+    const container = containerRef.current;
+    const video = container?.querySelector('video');
+
+    if (!video) {
+      return;
+    }
+
+    if (video.readyState >= 2) {
+      setVideoLoading(false);
+      return;
+    }
+
+    const handleVideoReady = () => {
+      setVideoLoading(false);
+      video.removeEventListener('loadeddata', handleVideoReady);
+      video.removeEventListener('canplay', handleVideoReady);
+      detachVideoListenersRef.current = () => {};
+    };
+
+    video.addEventListener('loadeddata', handleVideoReady);
+    video.addEventListener('canplay', handleVideoReady);
+    detachVideoListenersRef.current = () => {
+      video.removeEventListener('loadeddata', handleVideoReady);
+      video.removeEventListener('canplay', handleVideoReady);
+    };
+  }
+
   async function startScanning() {
     if (scanning) return;
     setScanning(true);
+    setVideoLoading(true);
 
     try {
       const cameras = await Html5Qrcode.getCameras();
@@ -49,6 +81,8 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
         cameraConfig,
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
+          detachVideoListenersRef.current();
+          setVideoLoading(false);
           scanner.stop().catch(() => {});
           setScanning(false);
           onScan(decodedText);
@@ -56,15 +90,19 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
         () => {},
       );
 
+      watchVideoReadiness();
       setScanning(true);
     } catch (e) {
+      detachVideoListenersRef.current();
       const message = e || 'Failed to start camera';
       onError?.(message);
       setScanning(false);
+      setVideoLoading(false);
     }
   }
 
   function stopScanning() {
+    detachVideoListenersRef.current();
     const s = scannerRef.current;
     if (s) {
       s.stop()
@@ -78,6 +116,7 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
         });
     }
     setScanning(false);
+    setVideoLoading(false);
   }
 
   return (
@@ -92,12 +131,20 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
           height: 100% !important;
         }
       `}</style>
-      <div
-        id="qr-reader"
-        ref={containerRef}
-        className="w-full max-w-md mx-auto rounded-lg overflow-hidden bg-black"
-        style={scanning ? { aspectRatio: '1 / 1', width: '100%' } : { height: 0 }}
-      />
+      <div className="relative w-full max-w-md mx-auto">
+        <div
+          id="qr-reader"
+          ref={containerRef}
+          className="w-full rounded-lg overflow-hidden bg-black"
+          style={scanning ? { aspectRatio: '1 / 1', width: '100%' } : { height: 0 }}
+        />
+
+        {scanning && videoLoading ? (
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/30 pointer-events-none">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" />
+          </div>
+        ) : null}
+      </div>
 
       <div className="text-center">
         {!scanning ? (
