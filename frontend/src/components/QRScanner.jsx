@@ -92,10 +92,9 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
 
       watchVideoReadiness();
       setScanning(true);
-    } catch (e) {
+    } catch {
       detachVideoListenersRef.current();
-      const message = e || 'Failed to start camera';
-      onError?.(message);
+      onError?.('Failed to start camera');
       setScanning(false);
       setVideoLoading(false);
     }
