@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import QRCode from 'qrcode';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import GearStatusBadge from '../../components/badges/GearStatusBadge.jsx';
@@ -7,12 +8,15 @@ import useGeolocation from '../../hooks/useGeolocation.js';
 import Alert from '../../components/Alert.jsx';
 import LoadingState from '../../components/LoadingState.jsx';
 
+const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
+
 export default function GearLanding() {
   const { id } = useParams();
   const { isAuthenticated, profile, getToken, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [gear, setGear] = useState(null);
+  const [qrDataUrl, setQrDataUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -39,6 +43,18 @@ export default function GearLanding() {
     if (authLoading) return;
     fetchGear();
   }, [authLoading, fetchGear]);
+
+  useEffect(() => {
+    if (!gear) return;
+    const target = gear.shortId || gear.id;
+    QRCode.toDataURL(`${APP_URL}/gear/${target}`, {
+      width: 160,
+      margin: 1,
+      color: { dark: '#000000', light: '#ffffff' },
+    })
+      .then(setQrDataUrl)
+      .catch(() => {});
+  }, [gear?.id, gear?.shortId]);
 
   async function handleCheckout() {
     setCheckoutLoading(true);
@@ -132,9 +148,9 @@ export default function GearLanding() {
           <p className="text-sm text-gray-400 mb-4">Serial: {gear.serialNumber}</p>
         )}
 
-        {gear.qrCodeUrl && (
+        {qrDataUrl && (
           <div className="mb-4 text-center">
-            <img src={gear.qrCodeUrl} alt="QR Code" className="inline-block w-40 h-40" />
+            <img src={qrDataUrl} alt="QR Code" className="inline-block w-40 h-40" />
           </div>
         )}
 

@@ -80,7 +80,7 @@ export async function getMyLoans(req, res, next) {
       where: { userId: req.profile.id },
       include: {
         gearItem: {
-          select: { id: true, name: true, category: { select: { name: true } }, qrCodeUrl: true },
+          select: { id: true, name: true, category: { select: { name: true } } },
         },
       },
       orderBy: { createdAt: 'desc' },

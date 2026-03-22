@@ -111,7 +111,7 @@ app.get('/api/health', (req, res) => {
 // Error handler (must be last)
 app.use(errorHandler);
 
-const server = app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info({ port: PORT }, 'Server running');
 });
 

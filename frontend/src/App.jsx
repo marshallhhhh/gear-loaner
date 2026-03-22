@@ -208,12 +208,12 @@ function Home() {
         <input
           type="text"
           placeholder="SHO-123"
-          className="flex-1 border rounded-lg px-2 py-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
+          className="flex-1 min-w-0 border rounded-lg px-2 py-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
           value={shortId}
           onChange={(e) => setShortId(e.target.value.toUpperCase())}
         />
         <button
-          className="flex-1 border rounded-lg px-2 py-2 mx-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
+          className="border rounded-lg px-2 py-2 mx-2 focus:ring-2 focus:ring-primary-500 outline-none text-center text-xl"
           onClick={handleSearch}
         >
           Submit

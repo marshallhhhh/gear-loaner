@@ -51,7 +51,6 @@ model Gear {
   serialNumber    String?    @unique
   shortId         String?    @unique
   loanStatus      GearStatus @default(AVAILABLE)
-  qrCodeUrl       String?
   defaultLoanDays Int        @default(7)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
