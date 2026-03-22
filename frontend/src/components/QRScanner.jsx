@@ -2,10 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { CameraIcon } from '@heroicons/react/24/outline';
 
-export default function QRScanner({ onScan, onError }) {
+export default function QRScanner({ onScan, onError, onScanningChange }) {
   const scannerRef = useRef(null);
   const containerRef = useRef(null);
   const [scanning, setScanning] = useState(false);
+
+  useEffect(() => {
+    onScanningChange?.(scanning);
+  }, [scanning]);
 
   useEffect(() => {
     return () => {
