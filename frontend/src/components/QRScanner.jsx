@@ -56,8 +56,8 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
       );
 
       setScanning(true);
-    } catch {
-      const message = 'Failed to start camera';
+    } catch (e) {
+      const message = e || 'Failed to start camera';
       onError?.(message);
     }
   }
