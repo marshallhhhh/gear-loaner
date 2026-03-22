@@ -80,11 +80,21 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
 
   return (
     <div>
+      <style>{`
+        #qr-reader video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+        }
+        #qr-reader > * {
+          height: 100% !important;
+        }
+      `}</style>
       <div
         id="qr-reader"
         ref={containerRef}
-        className="w-full max-w-sm mx-auto rounded-lg overflow-hidden bg-black"
-        style={{ minHeight: scanning ? 300 : 0 }}
+        className="w-full max-w-md mx-auto rounded-lg overflow-hidden bg-black"
+        style={scanning ? { aspectRatio: '1 / 1' } : { height: 0 }}
       />
 
       <div className="text-center">
@@ -99,7 +109,7 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
         ) : (
           <button
             onClick={stopScanning}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium text-lg inline-flex items-center"
+            className="bg-gray-600 hover:bg-gray-700 text-white mt-3 px-6 py-3 rounded-lg font-medium text-lg inline-flex items-center"
           >
             <CameraIcon className="h-6 w-6 mr-3" aria-hidden="true" />
             Stop Scanner
