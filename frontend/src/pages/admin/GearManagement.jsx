@@ -159,7 +159,7 @@ export default function GearManagement() {
       </PageHeader>
 
       {/* Search & Filter */}
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex gap-2 text-sm">
         <input
           type="text"
           placeholder="Search gear…"
@@ -282,7 +282,7 @@ export default function GearManagement() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50"
+            className="text-sm bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50"
           >
             {saving ? (editingId ? 'Saving…' : 'Adding…') : editingId ? 'Save Changes' : 'Add Gear'}
           </button>
