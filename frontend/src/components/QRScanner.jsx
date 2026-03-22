@@ -30,6 +30,7 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
 
   async function startScanning() {
     if (scanning) return;
+    setScanning(true);
 
     try {
       const cameras = await Html5Qrcode.getCameras();
@@ -59,6 +60,7 @@ export default function QRScanner({ onScan, onError, onScanningChange }) {
     } catch (e) {
       const message = e || 'Failed to start camera';
       onError?.(message);
+      setScanning(false);
     }
   }
 
