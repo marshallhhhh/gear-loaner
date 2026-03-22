@@ -22,7 +22,7 @@ export default function GearEditForm({
             required
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-lg px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -30,7 +30,7 @@ export default function GearEditForm({
           <select
             value={showNewCategory ? '__create_new__' : form.category || ''}
             onChange={(e) => handleCategoryChange(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-lg px-3 py-2 text-sm"
           >
             <option value="">—</option>
             {categories.map((c) => (
@@ -50,7 +50,7 @@ export default function GearEditForm({
                 value={newCategory}
                 onChange={(e) => handleNewCategoryInput(e.target.value)}
                 placeholder="New category name"
-                className="w-full border rounded-lg px-3 py-2"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
               />
             </div>
           )}
@@ -60,7 +60,7 @@ export default function GearEditForm({
           <input
             value={form.serialNumber}
             onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-lg px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -71,7 +71,7 @@ export default function GearEditForm({
             max={30}
             value={form.defaultLoanDays}
             onChange={(e) => setForm({ ...form, defaultLoanDays: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border rounded-lg px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -79,7 +79,7 @@ export default function GearEditForm({
           <input
             readOnly
             value={gear.shortId || '—'}
-            className="w-full border rounded-lg px-3 py-2 bg-gray-50 text-gray-500 cursor-not-allowed font-mono"
+            className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 cursor-not-allowed font-mono"
           />
         </div>
       </div>
@@ -90,7 +90,7 @@ export default function GearEditForm({
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           rows={2}
-          className="w-full border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 text-sm"
         />
       </div>
 
@@ -100,11 +100,11 @@ export default function GearEditForm({
           value={form.tags}
           onChange={(e) => setForm({ ...form, tags: e.target.value })}
           placeholder="rope, dynamic, 60m"
-          className="w-full border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 text-sm"
         />
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 text-sm">
         <button
           type="submit"
           disabled={saving}
