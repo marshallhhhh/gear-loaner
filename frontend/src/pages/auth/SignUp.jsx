@@ -39,7 +39,7 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      await signUp(email, password, trimmedFullName);
+      await signUp(email.toLowerCase(), password, trimmedFullName);
       setSuccess(true);
     } catch (err) {
       setError(err.message);
@@ -53,7 +53,7 @@ export default function SignUp() {
       <div className="max-w-md mx-auto mt-12 text-center">
         <h1 className="text-2xl font-bold mb-4">Check Your Email</h1>
         <p className="text-gray-600 mb-4">
-          We've sent a confirmation link to <strong>{email}</strong>. Please click it to activate
+          We've sent a confirmation link to <strong>{email.toLowerCase()}</strong>. Please click it to activate
           your account.
         </p>
         <Link to="/login" className="text-primary-600 hover:underline">
@@ -102,7 +102,7 @@ export default function SignUp() {
             autoComplete="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value.toLowerCase())}
             className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
           />
         </div>
