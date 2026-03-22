@@ -21,7 +21,6 @@ const createFoundReportLimiter = rateLimit({
 // Public (anyone who scans a QR code can submit a report)
 router.post(
   '/:id',
-  validateUuidParam(),
   createFoundReportLimiter,
   optionalAuth,
   validate(createFoundReportSchema),
