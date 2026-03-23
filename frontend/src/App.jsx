@@ -7,6 +7,8 @@ import Home from './pages/public/Home.jsx';
 
 const Login = lazy(() => import('./pages/auth/Login.jsx'));
 const SignUp = lazy(() => import('./pages/auth/SignUp.jsx'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword.jsx'));
+const ResetPassword = lazy(() => import('./pages/auth/ResetPassword.jsx'));
 const GearLanding = lazy(() => import('./pages/public/GearLanding.jsx'));
 const ReportFound = lazy(() => import('./pages/public/ReportFound.jsx'));
 const MyLoans = lazy(() => import('./pages/member/MyLoans.jsx'));
@@ -64,6 +66,8 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/gear/:id" element={<GearLanding />} />
             <Route path="/gear/:id/report-found" element={<ReportFound />} />
 
