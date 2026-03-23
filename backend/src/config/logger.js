@@ -24,10 +24,8 @@ export const requestLogger = pinoHttp({
   autoLogging: {
     ignore: (req) => req.url === '/api/health',
   },
-  customSuccessMessage: (req, res) =>
-    `${req.method} ${req.url} ${res.statusCode}`,
-  customErrorMessage: (req, res) =>
-    `${req.method} ${req.url} ${res.statusCode}`,
+  customSuccessMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode}`,
+  customErrorMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode}`,
   customProps: (req) => {
     const props = {};
     if (req.user?.sub) props.userId = req.user.sub;
