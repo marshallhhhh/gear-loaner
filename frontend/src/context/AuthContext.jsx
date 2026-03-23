@@ -3,6 +3,7 @@ import { supabase } from '../config/supabase.js';
 import { api } from '../config/api.js';
 
 const AuthContext = createContext(null);
+const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -68,6 +69,19 @@ export function AuthProvider({ children }) {
     setProfile(null);
   }, []);
 
+  const requestPasswordReset = useCallback(async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${APP_URL}/reset-password`,
+    });
+    if (error) throw error;
+  }, []);
+
+  const resetPassword = useCallback(async (newPassword) => {
+    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return data;
+  }, []);
+
   const getToken = useCallback(async () => {
     const {
       data: { session: currentSession },
@@ -83,11 +97,23 @@ export function AuthProvider({ children }) {
       signUp,
       signIn,
       signOut,
+      requestPasswordReset,
+      resetPassword,
       getToken,
       isAdmin: profile?.role === 'ADMIN',
       isAuthenticated: !!session,
     }),
-    [session, profile, loading, signUp, signIn, signOut, getToken],
+    [
+      session,
+      profile,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      requestPasswordReset,
+      resetPassword,
+      getToken,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
