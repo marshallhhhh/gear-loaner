@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import logger from './config/logger.js';
+import { requestLogger } from './config/logger.js';
 import prisma from './config/prisma.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import gearRoutes from './routes/gear.js';
@@ -84,6 +85,9 @@ app.use(
 
 // Body parsing
 app.use(express.json({ limit: '1mb' }));
+
+// HTTP request logging
+app.use(requestLogger);
 
 // Request timeout protection for stuck upstream/database calls.
 app.use((req, res, next) => {
