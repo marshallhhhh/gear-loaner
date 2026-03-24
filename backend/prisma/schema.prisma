@@ -58,6 +58,7 @@ model Gear {
   loans        Loan[]
   actions      Action[]
   foundReports FoundReport[]
+  qrTag        QrTag?
   @@index([loanStatus])
   @@index([categoryId])
 }
@@ -150,4 +151,11 @@ model Action {
 
   @@index([gearItemId])
   @@index([userId])
+}
+
+model QrTag {
+  id         String  @id @default(uuid())
+  nanoid     String  @unique
+  gearItem   Gear?   @relation(fields: [gearItemId], references: [id])
+  gearItemId String? @unique
 }

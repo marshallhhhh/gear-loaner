@@ -20,6 +20,7 @@ const UserManagement = lazy(() => import('./pages/admin/UserManagement.jsx'));
 const UserDetail = lazy(() => import('./pages/admin/UserDetail.jsx'));
 const PrintTags = lazy(() => import('./pages/admin/PrintTags.jsx'));
 const FoundReports = lazy(() => import('./pages/admin/FoundReports.jsx'));
+const QrLanding = lazy(() => import('./pages/public/QrLanding.jsx'));
 
 function PageSpinner() {
   return (
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/gear/:id" element={<GearLanding />} />
             <Route path="/gear/:id/report-found" element={<ReportFound />} />
+            <Route path="/t/:nanoid" element={<QrLanding />} />
 
             {/* Member (authenticated) */}
             <Route

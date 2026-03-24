@@ -11,6 +11,7 @@ import loanRoutes from './routes/loans.js';
 import userRoutes from './routes/users.js';
 import adminRoutes from './routes/admin.js';
 import foundReportRoutes from './routes/foundReports.js';
+import qrTagRoutes from './routes/qrTags.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -106,6 +107,7 @@ app.use('/api/loans', loanRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/found-reports', foundReportRoutes);
+app.use('/api/qr-tags', qrTagRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

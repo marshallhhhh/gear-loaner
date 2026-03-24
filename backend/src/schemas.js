@@ -149,3 +149,23 @@ export const listUsersQuerySchema = z
     ...paginationParams,
   })
   .strip();
+
+// ── QR Tags ──────────────────────────────────────────────────────────
+
+/** Standard nanoid alphabet: A-Za-z0-9_- */
+const NANOID_REGEX = /^[A-Za-z0-9_-]{6}$/;
+
+export const nanoidParamSchema = z.string().regex(NANOID_REGEX, 'Invalid nanoid format');
+
+export const assignQrTagSchema = z
+  .object({
+    gearItemId: z.string().uuid('Invalid gear item ID'),
+  })
+  .strip();
+
+export const listUntaggedGearQuerySchema = z
+  .object({
+    search: z.string().max(200).optional(),
+    ...paginationParams,
+  })
+  .strip();
