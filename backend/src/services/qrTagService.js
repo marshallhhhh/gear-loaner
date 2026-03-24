@@ -68,7 +68,7 @@ export async function assignGearItem(nanoid, gearItemId) {
     if (!qrTag) throw Object.assign(new Error('QR tag not found'), { status: 404 });
 
     if (qrTag.gearItemId) {
-      throw Object.assign(new Error('This QR tag already assigned to an item'), { status: 409 });
+      throw Object.assign(new Error('This QR tag is already assigned to an item'), { status: 409 });
     }
 
     // Verify gear item exists

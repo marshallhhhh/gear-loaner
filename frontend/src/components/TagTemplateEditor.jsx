@@ -67,8 +67,9 @@ function resolveCqUnits(html, cellWmm, cellHmm) {
 const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
 async function generateQrDataUrl(gear) {
-  const qrTarget = gear?.qrTag?.nanoid;
-  const qrContent = `${APP_URL}/t/${qrTarget}`;
+  const nanoid = gear?.qrTag?.nanoid;
+  const qrContent = `${APP_URL}/t/${nanoid}`;
+
   try {
     return await QRCode.toDataURL(qrContent, {
       version: 3,

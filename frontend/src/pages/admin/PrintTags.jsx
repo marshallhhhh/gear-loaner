@@ -17,16 +17,13 @@ export default function PrintTags() {
   const location = useLocation();
   const navigate = useNavigate();
   const { getToken } = useAuth();
-  const routeGearItems = location.state?.gearItems || [];
-  const routeGearItemsLength = routeGearItems.length;
+  const routeGearItems = Array.isArray(location.state?.gearItems) ? location.state.gearItems : null;
 
-  const [gearItems, setGearItems] = useState(routeGearItems);
-  const [loading, setLoading] = useState(routeGearItemsLength === 0);
+  const [gearItems, setGearItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (routeGearItemsLength) return; // already have items
-
     async function fetchGear() {
       try {
         setLoading(true);
@@ -34,11 +31,9 @@ export default function PrintTags() {
         const params = new URLSearchParams(location.search);
         const idsParam = params.get('ids');
 
-        const routeIds = routeGearItems.map((g) => g.id).filter(Boolean);
+        const routeIds = (routeGearItems || []).map((g) => g.id).filter(Boolean);
         const queryIds = idsParam ? idsParam.split(',').filter(Boolean) : [];
-        const sourceIds = routeIds.length ? routeIds : queryIds;
-
-        let idList = sourceIds;
+        let idList = routeIds.length ? routeIds : queryIds;
 
         if (!idList.length) {
           // /gear is paginated; normalize to array of items
@@ -64,7 +59,7 @@ export default function PrintTags() {
     }
 
     fetchGear();
-  }, [getToken, location.search, routeGearItemsLength]);
+  }, [getToken, location.search, routeGearItems]);
 
   if (loading) {
     return <div className="text-center py-20 text-gray-500">Loading gear…</div>;
