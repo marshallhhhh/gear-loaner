@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import Alert from '../../components/Alert.jsx';
 import QRScanner from '../../components/QRScanner.jsx';
 
+const NANOID_REGEX = /^[A-Za-z0-9_-]{6}$/;
+
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const [shortId, setShortId] = useState('');
@@ -39,13 +41,34 @@ export default function Home() {
   }
 
   function handleScan(decodedText) {
-    // Match /gear/{shortId} (AAA-XXX) or /gear/{uuid}
-    const match = decodedText.match(/\/gear\/([A-Za-z0-9]{3}-[A-Za-z0-9]+|[a-f0-9-]{36})/i);
-    if (match) {
-      navigate(`/gear/${match[1]}`);
-    } else {
-      setError('Invalid QR code. Expected a gear URL.');
+    const text = decodedText.trim();
+
+    if (!text) {
+      setError('Invalid QR code.');
+      return;
     }
+
+    try {
+      const url = new URL(text);
+      const parts = url.pathname.split('/').filter(Boolean);
+      const tIdx = parts.indexOf('t');
+      const host = url.hostname.toLowerCase();
+
+      if (
+        host === 'tasuniclimbing.club' &&
+        tIdx !== -1 &&
+        parts[tIdx + 1] &&
+        NANOID_REGEX.test(parts[tIdx + 1])
+      ) {
+        setError('');
+        navigate(`/t/${parts[tIdx + 1]}`);
+        return;
+      }
+    } catch {
+      // Not a URL.
+    }
+
+    setError('Invalid QR code.');
   }
 
   return (
