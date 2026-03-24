@@ -47,11 +47,11 @@ export default function QrLanding() {
     fetchTag();
   }, [authLoading, fetchTag, isValidNanoid]);
 
-  // Redirect to gear page when tag is linked
+  // Redirect to gear page when tag is linked, passing fetched data to avoid re-fetch
   useEffect(() => {
     if (tagData?.linked && tagData.gear) {
       const target = tagData.gear.shortId || tagData.gear.id;
-      navigate(`/gear/${target}`, { replace: true });
+      navigate(`/gear/${target}`, { replace: true, state: { gear: tagData.gear } });
     }
   }, [tagData, navigate]);
 

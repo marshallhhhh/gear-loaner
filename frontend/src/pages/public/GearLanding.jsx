@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
@@ -14,10 +14,11 @@ export default function GearLanding() {
   const { id } = useParams();
   const { isAuthenticated, profile, getToken, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [gear, setGear] = useState(null);
+  const [gear, setGear] = useState(location.state?.gear || null);
   const [qrDataUrl, setQrDataUrl] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!location.state?.gear);
   const [error, setError] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [returnLoading, setReturnLoading] = useState(false);
@@ -41,8 +42,15 @@ export default function GearLanding() {
   useEffect(() => {
     // Wait until auth has resolved so the token (if any) is available
     if (authLoading) return;
+    // If we already have matching gear data (e.g. from QR redirect state), do not re-fetch.
+    const routeId = typeof id === 'string' ? id.toUpperCase() : id;
+    const hasMatchingGear =
+      gear && (gear.id === id || (typeof gear.shortId === 'string' && gear.shortId === routeId));
+    if (hasMatchingGear) {
+      return;
+    }
     fetchGear();
-  }, [authLoading, fetchGear]);
+  }, [authLoading, fetchGear, gear, id]);
 
   useEffect(() => {
     if (!gear) return;
