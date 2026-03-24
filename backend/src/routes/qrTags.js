@@ -2,11 +2,7 @@ import { Router } from 'express';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { requireRole } from '../middleware/roles.js';
 import { validate, validateQuery } from '../middleware/validate.js';
-import {
-  nanoidParamSchema,
-  assignQrTagSchema,
-  listUntaggedGearQuerySchema,
-} from '../schemas.js';
+import { nanoidParamSchema, assignQrTagSchema, listUntaggedGearQuerySchema } from '../schemas.js';
 import {
   getQrTag,
   createQrTagHandler,
@@ -43,7 +39,20 @@ router.get('/:nanoid', validateNanoidParam, optionalAuth, getQrTag);
 
 // Admin only
 router.post('/', authenticate, requireRole('ADMIN'), createQrTagHandler);
-router.post('/:nanoid/assign', validateNanoidParam, authenticate, requireRole('ADMIN'), validate(assignQrTagSchema), assignQrTag);
-router.post('/:nanoid/unassign', validateNanoidParam, authenticate, requireRole('ADMIN'), unassignQrTag);
+router.post(
+  '/:nanoid/assign',
+  validateNanoidParam,
+  authenticate,
+  requireRole('ADMIN'),
+  validate(assignQrTagSchema),
+  assignQrTag,
+);
+router.post(
+  '/:nanoid/unassign',
+  validateNanoidParam,
+  authenticate,
+  requireRole('ADMIN'),
+  unassignQrTag,
+);
 
 export default router;
