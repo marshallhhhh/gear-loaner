@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { api } from '../../config/api.js';
 import ActionBadge from '../../components/badges/ActionBadge.jsx';
+import GearStatusBadge from '../../components/badges/GearStatusBadge.jsx';
+import { formatDate } from '../../utils/formatDate.js';
 import DetailModal from '../../components/DetailModal.jsx';
 import ConfirmModal from '../../components/ConfirmModal.jsx';
 import Alert from '../../components/Alert.jsx';
@@ -15,6 +17,7 @@ import GearStatusActions from './gear-detail/GearStatusActions.jsx';
 import GearEditForm from './gear-detail/GearEditForm.jsx';
 import GearInfoCards from './gear-detail/GearInfoCards.jsx';
 import GearHistoryTable from './gear-detail/GearHistoryTable.jsx';
+import GearQrTagCard from './gear-detail/GearQrTagCard.jsx';
 
 export default function GearDetail() {
   const { id } = useParams();
@@ -200,7 +203,64 @@ export default function GearDetail() {
           }}
         />
       ) : (
-        <GearInfoCards gear={gear} activeLoan={activeLoan} />
+        <>
+          {/* Top row: Gear Details (left) | QR Tag (right) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <GearInfoCards gear={gear} />
+            <GearQrTagCard gear={gear} onRefresh={fetchDetail} />
+          </div>
+
+          {/* Current Loan Status — full width below */}
+          <div className="bg-white rounded-xl shadow p-6 mb-6">
+            <h2 className="text-md font-semibold mb-4">Current Loan Status</h2>
+            {activeLoan ? (
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Status</dt>
+                  <dd>
+                    <GearStatusBadge status="CHECKED_OUT" />
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Loaned To</dt>
+                  <dd className="font-medium">
+                    {activeLoan.user?.fullName || activeLoan.user?.email || 'Unknown'}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Checked Out</dt>
+                  <dd className="font-medium">{formatDate(activeLoan.checkoutDate)}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Due Date</dt>
+                  <dd
+                    className={`font-medium ${
+                      new Date(activeLoan.dueDate) < new Date() ? 'text-red-600' : ''
+                    }`}
+                  >
+                    {formatDate(activeLoan.dueDate)}
+                    {new Date(activeLoan.dueDate) < new Date() && ' (Overdue)'}
+                  </dd>
+                </div>
+                {activeLoan.notes && (
+                  <div>
+                    <dt className="text-gray-500 mb-1">Notes</dt>
+                    <dd className="text-gray-800">{activeLoan.notes}</dd>
+                  </div>
+                )}
+              </dl>
+            ) : (
+              <div className="flex items-center gap-2 text-sm">
+                <GearStatusBadge status={gear.loanStatus} />
+                <span className="text-gray-500">
+                  {gear.loanStatus === 'LOST'
+                    ? 'This item is reported lost'
+                    : 'Not currently on loan'}
+                </span>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       <GearHistoryTable history={history} onSelectEntry={setSelectedEntry} />

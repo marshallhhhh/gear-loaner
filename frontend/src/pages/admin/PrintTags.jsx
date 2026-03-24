@@ -17,37 +17,40 @@ export default function PrintTags() {
   const location = useLocation();
   const navigate = useNavigate();
   const { getToken } = useAuth();
-  const routeGearItems = location.state?.gearItems || [];
-  const routeGearItemsLength = routeGearItems.length;
+  const routeGearItems = Array.isArray(location.state?.gearItems) ? location.state.gearItems : null;
 
-  const [gearItems, setGearItems] = useState(routeGearItems);
-  const [loading, setLoading] = useState(routeGearItemsLength === 0);
+  const [gearItems, setGearItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (routeGearItemsLength) return; // already have items
-
     async function fetchGear() {
       try {
         setLoading(true);
+        const token = await getToken();
         const params = new URLSearchParams(location.search);
-        const ids = params.get('ids');
+        const idsParam = params.get('ids');
 
-        if (ids) {
-          // Fetch individual items by ID
-          const idList = ids.split(',').filter(Boolean);
-          const results = await Promise.all(
-            idList.map(async (id) => {
-              const data = await api(`/admin/gear/${id}`, { token: await getToken() });
-              return data.gear;
-            }),
-          );
-          setGearItems(results.filter(Boolean));
-        } else {
-          // Fetch all gear
-          const data = await api('/gear', { token: await getToken() });
-          setGearItems(data);
+        const routeIds = (routeGearItems || []).map((g) => g.id).filter(Boolean);
+        const queryIds = idsParam ? idsParam.split(',').filter(Boolean) : [];
+        let idList = routeIds.length ? routeIds : queryIds;
+
+        if (!idList.length) {
+          // /gear is paginated; normalize to array of items
+          const listRes = await api('/gear?page=1&pageSize=1000', { token });
+          const allGear = Array.isArray(listRes) ? listRes : listRes.data || [];
+          idList = allGear.map((g) => g.id).filter(Boolean);
         }
+
+        const uniqueIds = [...new Set(idList)];
+        const results = await Promise.all(
+          uniqueIds.map(async (id) => {
+            const data = await api(`/admin/gear/${id}`, { token });
+            return data.gear;
+          }),
+        );
+
+        setGearItems(results.filter(Boolean));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -56,7 +59,7 @@ export default function PrintTags() {
     }
 
     fetchGear();
-  }, [getToken, location.search, routeGearItemsLength]);
+  }, [getToken, location.search, routeGearItems]);
 
   if (loading) {
     return <div className="text-center py-20 text-gray-500">Loading gear…</div>;

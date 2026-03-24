@@ -14,12 +14,18 @@ export default function Home() {
   function formatShortIdInput(value) {
     const compact = value
       .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '')
-      .slice(0, 6);
+      .replace(/[^A-Z0-9]/g, (match, offset) => {
+        if (match === '-' && offset === 3) return '-';
+        return '';
+      })
+      .slice(0, 7);
     if (compact.length <= 3) {
       return compact;
     }
-    return `${compact.slice(0, 3)}-${compact.slice(3)}`;
+    if (compact[3] !== '-') {
+      return `${compact.slice(0, 3)}-${compact.slice(3)}`;
+    }
+    return compact;
   }
 
   function handleSearch() {

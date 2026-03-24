@@ -187,6 +187,7 @@ export async function getAdminGearDetail(req, res, next) {
       where: { id: gearId },
       include: {
         category: { select: { name: true } },
+        qrTag: { select: { id: true, nanoid: true } },
         loans: {
           include: {
             user: { select: { id: true, email: true, fullName: true } },
